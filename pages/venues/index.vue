@@ -1,8 +1,41 @@
 <template>
     <v-container fluid>
+        <v-row justify="center" no-gutters>
+            <v-col cols="1">
+                <v-dialog draggable v-model="addition.model" persistent max-width="500">
+                    <dialogs-add-venue @add="onSave" @close="addition.model = false">
+                    </dialogs-add-venue>
+                </v-dialog>
+
+                <v-dialog v-model="deletion.model" location="top center" persistent max-width="400">
+                    <v-card>
+                        <v-card-title class="headline"
+                            >Delete {{ selections.venues.length }} Venues</v-card-title
+                        >
+                        <v-card-text
+                            >Are you sure you want to delete the selected venues</v-card-text
+                        >
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn color="primary" flat @click.native="deletion.model = false"
+                                >Cancel</v-btn
+                            >
+                            <v-btn
+                                size="large"
+                                color="red"
+                                v-if="selections.venues.length > 0"
+                                :loading="deletion.pending"
+                                @click="onDelete"
+                                >DELETE</v-btn
+                            >
+                        </v-card-actions>
+                    </v-card>
+                </v-dialog>
+            </v-col>
+        </v-row>
         <v-row>
             <v-col cols="12" lg="3">
-                <v-card height="100%" class="pa-4">
+                <v-card class="pa-4" color="teal" density="compact">
                     <div class="d-flex flex-column align-center justify-center h-100">
                         <div class="d-flex justify-space-between align-center w-100">
                             <span class="text-h6 text-uppercase mr-auto">Venues Categories</span>
@@ -12,7 +45,7 @@
                                     <v-btn
                                         icon="mdi-plus"
                                         variant="text"
-                                        color="primary"
+                                        color="white"
                                         v-bind="props"
                                     ></v-btn>
                                 </template>
@@ -25,12 +58,13 @@
                             class="my-auto"
                             v-if="pendingCategories"
                         ></v-progress-circular>
-                        <v-list v-else color="primary" variant="outlined" class="mb-auto w-100">
+                        <v-list v-else class="mb-auto w-100 transparent" bg-color="transparent">
                             <v-list-item
                                 v-for="category in categories"
                                 :key="category.pk"
                                 :value="category.pk"
-                                color="primary"
+                                color="trn"
+                                class="transparent"
                                 nav
                                 :title="category.title"
                                 :subtitle="`${category.venue_count} Venues`"
@@ -40,8 +74,8 @@
                                     <v-checkbox
                                         hide-details
                                         indeterminate
-                                        color="primary"
-                                        v-model="_selectedCategories"
+                                        color="white"
+                                        v-model="selections.categories"
                                         :value="category.pk"
                                     ></v-checkbox>
                                 </template>
@@ -53,27 +87,16 @@
             <v-col cols="12" lg="9">
                 <v-data-table
                     :headers="HEADERS"
-                    :items="_venues"
+                    :items="filteredVenues"
                     :loading="pendingDepartments"
                     show-select
-                    v-model="selectedVenues"
+                    v-model="selections.venues"
                     item-value="pk"
                 >
                     <template #top>
                         <v-row justify="center">
                             <v-col><span class="text-h5 text-uppercase">Venues</span></v-col>
                             <v-spacer></v-spacer>
-                            <v-col cols="auto"
-                                ><v-dialog v-model="addVenueModel" persistent max-width="500">
-                                    <template #activator="{ props }">
-                                        <v-btn color="primary" dark v-bind="props">
-                                            Add Venue
-                                        </v-btn>
-                                    </template>
-
-                                    <dialogs-add-venue @add="onSave" @close="addVenueModel = false">
-                                    </dialogs-add-venue> </v-dialog
-                            ></v-col>
                         </v-row>
                     </template>
 
@@ -93,46 +116,6 @@
                     </template>
                 </v-data-table>
             </v-col>
-        </v-row>
-        <v-row>
-            <v-col cols="auto">
-                <v-layout row justify-center>
-                    <v-dialog v-model="deleteModel" persistent max-width="400">
-                        <template #activator="{ props }">
-                            <v-btn
-                                size="large"
-                                color="red"
-                                v-bind="props"
-                                v-if="selectedVenues.length > 0"
-                                >DELETE</v-btn
-                            >
-                        </template>
-                        <v-card>
-                            <v-card-title class="headline"
-                                >Delete {{ selectedVenues.length }} Venues</v-card-title
-                            >
-                            <v-card-text
-                                >Are you sure you want to delete the selected venues</v-card-text
-                            >
-                            <v-card-actions>
-                                <v-spacer></v-spacer>
-                                <v-btn color="primary" flat @click.native="deleteModel = false"
-                                    >Cancel</v-btn
-                                >
-                                <v-btn
-                                    size="large"
-                                    color="red"
-                                    v-if="selectedVenues.length > 0"
-                                    :loading="deleting"
-                                    @click="onDelete"
-                                    >DELETE</v-btn
-                                >
-                            </v-card-actions>
-                        </v-card>
-                    </v-dialog>
-                </v-layout>
-            </v-col>
-            <v-spacer></v-spacer>
         </v-row>
     </v-container>
 </template>
@@ -157,16 +140,69 @@ const HEADERS = [
 ]
 
 const configs = useRuntimeConfig()
-const addVenueModel = ref(false)
+const { addAction, removeActions } = useNavigation()
 
-const selectedVenues = ref<Array<number>>([])
+const selections = ref<{ venues: Array<number>; categories: Array<number> }>({
+    venues: [],
+    categories: [],
+})
 
-const _selectedCategories = ref<number[]>([])
-const _venues = computed(() => {
-    if (_selectedCategories.value.length == 0) {
+const deletion = ref({
+    model: false,
+    pending: false,
+})
+const addition = ref({
+    model: false,
+})
+
+let headerActions: symbol[] = []
+onMounted(() => {
+    headerActions.push(
+        addAction({
+            title: "New Venue",
+            description: "Add a new venue to the list of venues",
+            icon: "mdi-plus",
+            color: "primary",
+            action() {
+                addition.value.model = true
+            },
+        })
+    )
+})
+onUnmounted(() => {
+    removeActions(headerActions)
+})
+
+watchEffect(() => {
+    console.log("Selection changes")
+
+    if (selections.value.venues.length > 0 && headerActions.length == 1) {
+        // Add the delete action
+        headerActions.push(
+            addAction({
+                title: "delete",
+                description: computed(
+                    () => `delete the ${selections.value.venues.length} selected venues`
+                ),
+                icon: "mdi-delete",
+                color: "error",
+                loading: computed(() => deletion.value.model),
+                action() {
+                    deletion.value.model = true
+                },
+            })
+        )
+    } else if (selections.value.venues.length == 0 && headerActions.length > 1) {
+        removeActions([...headerActions.slice(1)])
+        headerActions = headerActions.slice(0, 1)
+    }
+})
+
+const filteredVenues = computed(() => {
+    if (selections.value.categories.length == 0) {
         return venues.value
     }
-    return venues.value.filter((venue) => _selectedCategories.value.includes(venue.category.pk))
+    return venues.value.filter((venue) => selections.value.categories.includes(venue.category.pk))
 })
 const { data: venues, pending: pendingDepartments } = useFetch<Array<Venue>>("/venues/", {
     baseURL: configs.public.baseURL,
@@ -174,6 +210,7 @@ const { data: venues, pending: pendingDepartments } = useFetch<Array<Venue>>("/v
         return []
     },
 })
+
 const { data: categories, pending: pendingCategories } = useFetch<Array<VenueCategory>>(
     "/venues/categories/",
     {
@@ -186,46 +223,46 @@ const { data: categories, pending: pendingCategories } = useFetch<Array<VenueCat
 
 function onSave(venue: Venue) {
     venues.value.push(venue)
-    addVenueModel.value = false
+    addition.value.model = false
     useNotification().add({
         title: "Venue added",
         text: `${venue.title} was added to venues`,
         icon: "mdi-plus",
+        color:"teal",
         action(closeCallback) {
             closeCallback()
         },
     })
 }
 
-const deleteModel = ref(false)
-const deleting = ref(false)
-
 async function onDelete() {
-    if (selectedVenues.value.length < 1) return
+    if (selections.value.venues.length < 1) return
 
     try {
-        deleting.value = true
+        deletion.value.pending = true
         await $fetch("/venues/multiple_delete/", {
             baseURL: configs.public.baseURL,
             method: "DELETE",
-            body: selectedVenues.value,
+            body: selections.value.venues,
         })
 
         venues.value = venues.value.filter((department) => {
-            return !selectedVenues.value.includes(department.pk)
+            return !selections.value.venues.includes(department.pk)
         })
         useNotification().add({
-            text: `Successfully deleted ${selectedVenues.value.length} venues`,
+            text: `Successfully deleted ${selections.value.venues.length} venues`,
             icon: "mdi-delete",
             color: "teal",
             action: (event) => event(),
         })
-        selectedVenues.value = []
+        selections.value.venues = []
     } catch (error) {
         console.log({ error })
     } finally {
-        deleting.value = false
-        deleteModel.value = false
+        deletion.value = {
+            pending: false,
+            model: false,
+        }
     }
 }
 </script>
