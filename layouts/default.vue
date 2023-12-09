@@ -19,6 +19,7 @@
                         :icon="notification.icon"
                         :color="notification.color"
                         @click="closeNotification(notification)"
+                        elevation="2"
                     >
                         <template #append>
                             <v-btn
@@ -44,7 +45,7 @@
     position: fixed;
     top: 56px;
     right: 0;
-    max-width: calc(100vw / 2.5);
+    max-width: calc(100vw / 2);
     padding: 0 8px;
     /* max-height: calc(100vh - 18px);
     overflow-y: auto; */
