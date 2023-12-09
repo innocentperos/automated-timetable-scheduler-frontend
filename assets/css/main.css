@@ -1,0 +1,12 @@
+a {
+    text-decoration: none;
+    color: white;
+}
+
+.aspect-square {
+    aspect-ratio: 1 / 1 !important;
+}
+
+.cursor-pointer {
+    cursor: pointer !important;
+}
