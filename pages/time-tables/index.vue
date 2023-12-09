@@ -2,8 +2,15 @@
     <v-container>
         <v-row>
             <v-col> Timetables </v-col>
+            <v-col
+                v-if="pendingTimetables"
+                cols="12"
+                class="d-flex pa-5 justify-center align-center"
+            >
+                <v-progress-circular color="primary" indeterminate></v-progress-circular>
+            </v-col>
         </v-row>
-        <v-row>
+        <v-row v-if="!pendingTimetables">
             <v-col cols="4" lg="3" v-for="timetable in timetables" :key="timetable.pk">
                 <NuxtLink>
                     <v-card class="aspect-square" color="indigo">
@@ -41,8 +48,9 @@
     </v-container>
 </template>
 <script setup lang="ts">
+import type { Timetable } from "~/types"
 const configs = useRuntimeConfig()
-const { data: timetables, pending: pendingTimetables } = useFetch<object[]>("/timetables/", {
+const { data: timetables, pending: pendingTimetables } = useFetch<Timetable[]>("/timetables/", {
     default: () => [],
     baseURL: configs.public.baseURL,
 })
