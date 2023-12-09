@@ -27,6 +27,16 @@ export type Venue = {
     category: VenueCategory
 }
 
+export type Timetable = {
+    pk: number
+    title: string
+    is_current: string
+    created_on: string
+    courses: number[]
+    staffs: number[]
+    venues: number[]
+}
+
 export type FetchError = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: any
@@ -72,4 +82,26 @@ export type _Notification = {
      * @return void
      */
     action?: (closeCallback: () => void) => void
+}
+
+export type NavigationAction = {
+    title: string
+    /**
+     * The icon of the action
+     */
+    icon?: string
+    /**
+     * The color for the action button
+     */
+    color?: "primary" | "error" | "success" | "info" | "warn"
+    /**
+     * Determine if the action is enabled or disabled
+     */
+    disabled?: ComputedRef | boolean
+    /**
+     * The information that will be displayed when the user hover over the action button
+     */
+    description?: ComputedRef | string
+    loading?: ComputedRef | boolean
+    action: () => void
 }
