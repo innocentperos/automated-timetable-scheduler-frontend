@@ -99,8 +99,13 @@ export type NavigationAction = {
      */
     disabled?: ComputedRef | boolean
     /**
+     * Determines if the action should be displayed
+     */
+    hidden?: ComputedRef<boolean> | boolean
+    /**
      * The information that will be displayed when the user hover over the action button
      */
+
     description?: ComputedRef | string
     loading?: ComputedRef | boolean
     action: () => void
