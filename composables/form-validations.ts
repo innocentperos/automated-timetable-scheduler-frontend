@@ -14,3 +14,12 @@ export const useRuleNumber = (value: string) => {
 
     return true
 }
+
+export const useForm = () => {
+    return {
+        maxLen: useRuleMaxLength,
+        minLen: useRuleMinLength,
+        numberOnly: useRuleNumber,
+        required: useRuleRequired,
+    }
+}

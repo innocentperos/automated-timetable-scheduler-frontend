@@ -61,7 +61,7 @@ const emits = defineEmits<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (event: "error", error: any): void
     (event: "close"): void
-    (event: "saved", department: Department): void
+    (event: "add", department: Department): void
 }>()
 
 const title = ref("")
@@ -91,15 +91,9 @@ async function saveDepartment() {
                 code: code.value,
             },
         })
-        useNotification().add({
-            text: `Added a new department ${response.title}`,
-            icon: "mdi-plus",
-            color: "teal",
-            action: (event) => {
-                event()
-            },
-        })
-        emits("saved", response)
+
+        emits("add", response)
+        emits("close")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         emits("error", error)

@@ -31,6 +31,18 @@
                         </v-card-actions>
                     </v-card>
                 </v-dialog>
+
+                <v-dialog
+                    v-model="addition.category"
+                    location="top center"
+                    persistent
+                    max-width="400"
+                >
+                    <lazy-dialogs-add-venue-category
+                        @close="addition.category = false"
+                        @add="onCategoryAdd"
+                    ></lazy-dialogs-add-venue-category>
+                </v-dialog>
             </v-col>
         </v-row>
         <v-row>
@@ -47,6 +59,7 @@
                                         variant="text"
                                         color="white"
                                         v-bind="props"
+                                        @click="addition.category = true"
                                     ></v-btn>
                                 </template>
                             </v-tooltip>
@@ -153,6 +166,7 @@ const deletion = ref({
 })
 const addition = ref({
     model: false,
+    category: false,
 })
 
 const headerActions: symbol[] = []
@@ -218,6 +232,20 @@ function onSave(venue: Venue) {
     useNotification().add({
         title: "Venue added",
         text: `${venue.title} was added to venues`,
+        icon: "mdi-plus",
+        color: "teal",
+        duration: 10000,
+        action(closeCallback) {
+            closeCallback()
+        },
+    })
+}
+
+function onCategoryAdd(category: VenueCategory) {
+    categories.value.push(category)
+    useNotification().add({
+        title: "Venue Category added",
+        text: `${category.title} was added to venue categories`,
         icon: "mdi-plus",
         color: "teal",
         action(closeCallback) {

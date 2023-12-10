@@ -27,6 +27,8 @@ export const useNotification = () => {
 
             if (notification.duration) {
                 setTimeout(() => removeNotification(id), notification.duration)
+            } else if (notification.closable) {
+                setTimeout(() => removeNotification(id), 10000)
             }
         },
     }
