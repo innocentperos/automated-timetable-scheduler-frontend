@@ -1,7 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import vuetify, {
-    transformAssetUrls,
-} from "vite-plugin-vuetify"
+import vuetify, { transformAssetUrls } from "vite-plugin-vuetify"
 // eslint-disable-next-line no-undef
 export default defineNuxtConfig({
     devtools: { enabled: true },
@@ -16,15 +14,10 @@ export default defineNuxtConfig({
     modules: [
         // "@nuxtjs/eslint-module",
         (_options, nuxt) => {
-            nuxt.hooks.hook(
-                "vite:extendConfig",
-                (config) => {
-                    // @ts-expect-error the re is
-                    config.plugins.push(
-                        vuetify({ autoImport: true })
-                    )
-                }
-            )
+            nuxt.hooks.hook("vite:extendConfig", (config) => {
+                // @ts-expect-error the re is
+                config.plugins.push(vuetify({ autoImport: true }))
+            })
         },
         //...
     ],
