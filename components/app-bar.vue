@@ -6,34 +6,36 @@
         <v-toolbar-title>Timetable</v-toolbar-title>
         <v-row no-gutters justify="end">
             <v-col class="d-flex">
-                <div v-for="action in headActions" :key="action.key">
-                    <v-tooltip
-                        v-if="action.description"
-                        location="bottom center"
-                        :text="action.description"
-                    >
-                        <template #activator="{ props }">
-                            <v-btn
-                                v-bind="props"
-                                @click="action.action"
-                                :color="action.color ?? 'primary'"
-                                :loading="action.loading"
-                                :prepend-icon="action.icon"
-                            >
-                                {{ action.title }}
-                            </v-btn>
-                        </template>
-                    </v-tooltip>
-                    <v-btn
-                        v-else
-                        @click="action.action"
-                        :color="action.color ?? 'primary'"
-                        :loading="action.loading"
-                        :prepend-icon="action.icon"
-                    >
-                        {{ action.title }}
-                    </v-btn>
-                </div>
+                <v-slide-x-transition class="py-0 d-flex" group tag="v-list">
+                    <div v-for="action in headActions" :key="action.key">
+                        <v-tooltip
+                            v-if="action.description"
+                            location="bottom center"
+                            :text="action.description"
+                        >
+                            <template #activator="{ props }">
+                                <v-btn
+                                    v-bind="props"
+                                    @click="action.action"
+                                    :color="action.color ?? 'primary'"
+                                    :loading="action.loading"
+                                    :prepend-icon="action.icon"
+                                >
+                                    {{ action.title }}
+                                </v-btn>
+                            </template>
+                        </v-tooltip>
+                        <v-btn
+                            v-else
+                            @click="action.action"
+                            :color="action.color ?? 'primary'"
+                            :loading="action.loading"
+                            :prepend-icon="action.icon"
+                        >
+                            {{ action.title }}
+                        </v-btn>
+                    </div>
+                </v-slide-x-transition>
                 <v-menu offset-y v-if="footActions.length > 0">
                     <template #activator="{ props }">
                         <v-btn v-bind="props" append-icon="mdi-menu-down">
@@ -91,6 +93,10 @@
         </v-dialog>
     </v-app-bar>
 </template>
+<style>
+.list-enter-active {
+}
+</style>
 <script setup lang="ts">
 const notify = ref(false)
 const { toggleSideNavigation, query, setQuery, headActions, footActions } = useNavigation()

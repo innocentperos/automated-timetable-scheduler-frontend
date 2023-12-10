@@ -14,6 +14,7 @@ const __actions = ref<
         }
     >
 >([])
+
 const _visibleActions = computed(() => __actions.value.filter((action) => !action.hidden))
 export const useNavigation = () => {
     return {
@@ -54,10 +55,10 @@ export const useNavigation = () => {
             return symbs
         },
         removeAction: (key: symbol) => {
-            __actions.value = _visibleActions.value.filter((item) => item.key != key)
+            __actions.value = __actions.value.filter((item) => item.key != key)
         },
         removeActions: (keys: symbol[]) => {
-            __actions.value = _visibleActions.value.filter((item) => !keys.includes(item.key))
+            __actions.value = __actions.value.filter((item) => !keys.includes(item.key))
         },
         actions: computed(() => _visibleActions.value),
         headActions: computed(() => {

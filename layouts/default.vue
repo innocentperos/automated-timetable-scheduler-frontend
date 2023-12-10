@@ -7,29 +7,31 @@
 
             <div class="notifications-container">
                 <div class="wrapper">
-                    <v-alert
-                        v-for="notification in notifications"
-                        :key="notification.id"
-                        type="error"
-                        class="mb-1"
-                        :class="{ 'cursor-pointer': notification.action }"
-                        border
-                        :title="notification.title"
-                        :text="notification.text || ''"
-                        :icon="notification.icon"
-                        :color="notification.color"
-                        @click="closeNotification(notification)"
-                        elevation="2"
-                    >
-                        <template #append>
-                            <v-btn
-                                @click="removeNotification(notification.id)"
-                                icon="mdi-close"
-                                variant="text"
-                                size="small"
-                            ></v-btn>
-                        </template>
-                    </v-alert>
+                    <v-slide-x-transition group>
+                        <v-alert
+                            v-for="notification in notifications"
+                            :key="notification.id"
+                            type="error"
+                            class="mb-1"
+                            :class="{ 'cursor-pointer': notification.action }"
+                            border
+                            :title="notification.title"
+                            :text="notification.text || ''"
+                            :icon="notification.icon"
+                            :color="notification.color"
+                            @click="closeNotification(notification)"
+                            elevation="2"
+                        >
+                            <template #append>
+                                <v-btn
+                                    @click="removeNotification(notification.id)"
+                                    icon="mdi-close"
+                                    variant="text"
+                                    size="small"
+                                ></v-btn>
+                            </template>
+                        </v-alert>
+                    </v-slide-x-transition>
                 </div>
                 <div class="item-center">
                     <v-chip color="primary" variant="flat" v-if="remainingNotification > 0"
