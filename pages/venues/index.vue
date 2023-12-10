@@ -155,7 +155,7 @@ const addition = ref({
     model: false,
 })
 
-let headerActions: symbol[] = []
+const headerActions: symbol[] = []
 onMounted(() => {
     headerActions.push(
         addAction({
@@ -168,34 +168,25 @@ onMounted(() => {
             },
         })
     )
+
+    headerActions.push(
+        addAction({
+            title: "delete",
+            description: computed(
+                () => `delete the ${selections.value.venues.length} selected venues`
+            ),
+            icon: "mdi-delete",
+            color: "error",
+            hidden: computed(() => selections.value.venues.length < 1),
+            loading: computed(() => deletion.value.model),
+            action() {
+                deletion.value.model = true
+            },
+        })
+    )
 })
 onUnmounted(() => {
     removeActions(headerActions)
-})
-
-watchEffect(() => {
-    console.log("Selection changes")
-
-    if (selections.value.venues.length > 0 && headerActions.length == 1) {
-        // Add the delete action
-        headerActions.push(
-            addAction({
-                title: "delete",
-                description: computed(
-                    () => `delete the ${selections.value.venues.length} selected venues`
-                ),
-                icon: "mdi-delete",
-                color: "error",
-                loading: computed(() => deletion.value.model),
-                action() {
-                    deletion.value.model = true
-                },
-            })
-        )
-    } else if (selections.value.venues.length == 0 && headerActions.length > 1) {
-        removeActions([...headerActions.slice(1)])
-        headerActions = headerActions.slice(0, 1)
-    }
 })
 
 const filteredVenues = computed(() => {
@@ -228,7 +219,7 @@ function onSave(venue: Venue) {
         title: "Venue added",
         text: `${venue.title} was added to venues`,
         icon: "mdi-plus",
-        color:"teal",
+        color: "teal",
         action(closeCallback) {
             closeCallback()
         },
