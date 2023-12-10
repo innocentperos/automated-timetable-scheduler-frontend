@@ -1,6 +1,40 @@
 <template>
     <v-container>
         <v-row>
+            <v-col cols="1">
+                <v-dialog v-model="addition.model" location="top center" persistent max-width="500">
+                    <dialogs-add-department @add="onSave" @close="addition.model = false">
+                    </dialogs-add-department>
+                </v-dialog>
+            </v-col>
+            <v-col>
+                <v-dialog v-model="deletion.model" location="top center" persistent max-width="400">
+                    <v-card>
+                        <v-card-title class="headline"
+                            >Delete {{ selectedDepartments.length }} Departments</v-card-title
+                        >
+                        <v-card-text
+                            >Are you sure you want to delete the selected departments</v-card-text
+                        >
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn color="primary" flat @click.native="deletion.model = false"
+                                >Cancel</v-btn
+                            >
+                            <v-btn
+                                size="large"
+                                color="red"
+                                v-if="selectedDepartments.length > 0"
+                                :loading="deletion.pending"
+                                @click="onDelete"
+                                >DELETE</v-btn
+                            >
+                        </v-card-actions>
+                    </v-card>
+                </v-dialog>
+            </v-col>
+        </v-row>
+        <v-row>
             <v-col>
                 <v-data-table
                     :headers="HEADERS"
@@ -13,26 +47,6 @@
                     <template #top>
                         <v-row justify="center">
                             <v-col><span class="text-h5 text-uppercase">Departments</span></v-col>
-                            <v-spacer></v-spacer>
-                            <v-col cols="auto"
-                                ><v-dialog v-model="addDepartmentModel" persistent max-width="500">
-                                    <template #activator="{ props }">
-                                        <v-btn
-                                            color="primary"
-                                            variant="text"
-                                            prepend-icon="mdi-plus"
-                                            v-bind="props"
-                                        >
-                                            Add Department
-                                        </v-btn>
-                                    </template>
-
-                                    <dialogs-add-department
-                                        @add="onSave"
-                                        @close="addDepartmentModel = false"
-                                    >
-                                    </dialogs-add-department> </v-dialog
-                            ></v-col>
                         </v-row>
                     </template>
 
@@ -51,46 +65,6 @@
                         <v-skeleton-loader type="table-row@6"></v-skeleton-loader>
                     </template>
                 </v-data-table>
-            </v-col>
-        </v-row>
-        <v-row>
-            <v-col cols="auto">
-                <v-layout row justify-center>
-                    <v-dialog v-model="deleteModel" persistent max-width="400">
-                        <template #activator="{ props }">
-                            <v-btn
-                                size="large"
-                                color="red"
-                                v-bind="props"
-                                v-if="selectedDepartments.length > 0"
-                                >DELETE</v-btn
-                            >
-                        </template>
-                        <v-card>
-                            <v-card-title class="headline"
-                                >Delete {{ selectedDepartments.length }} Departments</v-card-title
-                            >
-                            <v-card-text
-                                >Are you sure you want to delete the selected
-                                departments</v-card-text
-                            >
-                            <v-card-actions>
-                                <v-spacer></v-spacer>
-                                <v-btn color="primary" flat @click.native="deleteModel = false"
-                                    >Cancel</v-btn
-                                >
-                                <v-btn
-                                    size="large"
-                                    color="red"
-                                    v-if="selectedDepartments.length > 0"
-                                    :loading="deleting"
-                                    @click="onDelete"
-                                    >DELETE</v-btn
-                                >
-                            </v-card-actions>
-                        </v-card>
-                    </v-dialog>
-                </v-layout>
             </v-col>
         </v-row>
     </v-container>
@@ -115,7 +89,47 @@ const HEADERS = [
 ]
 
 const configs = useRuntimeConfig()
-const addDepartmentModel = ref(false)
+const { add: addNotification } = useNotification()
+const { addAction, removeActions } = useNavigation()
+const addition = ref({ model: false })
+const headingActions: symbol[] = []
+
+onMounted(() => {
+    headingActions.push(
+        addAction({
+            title: "New Department",
+            description: "Add an new department",
+            icon: "mdi-plus",
+            color: "primary",
+            action() {
+                addition.value.model = true
+            },
+        })
+    )
+    headingActions.push(
+        addAction({
+            title: "Delete",
+            description: computed(
+                () => `delete the ${selectedDepartments.value.length} departments`
+            ),
+            icon: "mdi-delete",
+            color: "error",
+            hidden: computed(() => selectedDepartments.value.length < 1),
+            action() {
+                deletion.value.model = true
+            },
+        })
+    )
+})
+
+onUnmounted(() => {
+    try {
+        removeActions(headingActions)
+    } catch (error) {
+        console.log("Error rmoving actions")
+        console.log(error)
+    }
+})
 
 const selectedDepartments = ref<Array<number>>([])
 const { data: departments, pending: pendingDepartments } = useFetch<Array<Department>>(
@@ -130,17 +144,25 @@ const { data: departments, pending: pendingDepartments } = useFetch<Array<Depart
 
 function onSave(department: Department) {
     departments.value.push(department)
-    addDepartmentModel.value = false
+    addition.value.model = false
+    addNotification({
+        text: `${department.title} was added Successfully`,
+        icon: "mdi-check-all",
+        color: "teal",
+        closable: true,
+        action(closeCallback) {
+            closeCallback()
+        },
+    })
 }
 
-const deleteModel = ref(false)
-const deleting = ref(false)
+const deletion = ref({ model: false, pending: false })
 
 async function onDelete() {
     if (selectedDepartments.value.length < 1) return
 
     try {
-        deleting.value = true
+        deletion.value.pending = true
         await $fetch("/courses/multiple_delete/", {
             baseURL: configs.public.baseURL,
             method: "DELETE",
@@ -160,8 +182,8 @@ async function onDelete() {
     } catch (error) {
         console.log({ error })
     } finally {
-        deleting.value = false
-        deleteModel.value = false
+        deletion.value.pending = false
+        deletion.value.model = false
     }
 }
 </script>
