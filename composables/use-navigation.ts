@@ -1,9 +1,19 @@
-import type { NavigationAction } from "~/types"
+import type { _NavigationAction } from "~/types"
+import type { ComputedRef } from "vue"
 
 const navigation = ref(false)
 const searchQuery = ref("")
 
-const __actions = ref<Array<NavigationAction & { key: symbol }>>([])
+const __actions = ref<
+    Array<
+        _NavigationAction & {
+            key: symbol
+            disabled?: ComputedRef
+            hidden?: ComputedRef
+            loading?: ComputedRef
+        }
+    >
+>([])
 const _visibleActions = computed(() => __actions.value.filter((action) => !action.hidden))
 export const useNavigation = () => {
     return {
@@ -27,17 +37,17 @@ export const useNavigation = () => {
             }
         },
 
-        addAction: (action: NavigationAction) => {
+        addAction: (action: _NavigationAction) => {
             const sym = Symbol()
             __actions.value.push({ key: sym, ...action })
             return sym
         },
-        addActions: (actions: Array<NavigationAction>) => {
+        addActions: (actions: Array<_NavigationAction>) => {
             const symbs: Array<symbol> = []
 
             actions.forEach((action) => {
                 const sym = Symbol()
-                __actions.value.push({ key: sym, ...action })
+                __actions.value.push({ ...action, key: sym })
                 symbs.push(sym)
             })
 

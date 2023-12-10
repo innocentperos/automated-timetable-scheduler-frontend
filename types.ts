@@ -1,3 +1,5 @@
+import type { ComputedRef } from "vue"
+
 export type Department = {
     title: string
     code: string
@@ -84,7 +86,7 @@ export type _Notification = {
     action?: (closeCallback: () => void) => void
 }
 
-export type NavigationAction = {
+export type _NavigationAction = {
     title: string
     /**
      * The icon of the action
@@ -97,7 +99,7 @@ export type NavigationAction = {
     /**
      * Determine if the action is enabled or disabled
      */
-    disabled?: ComputedRef | boolean
+    disabled?: ComputedRef<boolean> | boolean
     /**
      * Determines if the action should be displayed
      */
@@ -107,6 +109,6 @@ export type NavigationAction = {
      */
 
     description?: ComputedRef | string
-    loading?: ComputedRef | boolean
+    loading?: ComputedRef<boolean> | boolean
     action: () => void
 }

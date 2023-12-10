@@ -15,8 +15,8 @@ export const useNotification = () => {
     return {
         notifications: computed(() => notifications.value),
         heads: computed(() => notifications.value.slice(0, 5)),
-        count: computed(()=>notifications.value.length),
-        hidden: computed(()=>{
+        count: computed(() => notifications.value.length),
+        hidden: computed(() => {
             if (notifications.value.length <= 5) return 0
             return notifications.value.length - 5
         }),
