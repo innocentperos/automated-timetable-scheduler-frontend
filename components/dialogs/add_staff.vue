@@ -1,47 +1,44 @@
 <template>
     <v-form @submit.prevent v-model="formValid" :disabled="loading">
         <v-card>
-            <v-card-title primary-title> Add new venue </v-card-title>
+            <v-card-title primary-title> Add new staff </v-card-title>
             <v-card-text>
                 <v-row>
                     <v-col cols="8">
                         <v-text-field
-                            name="title"
-                            label="Title"
-                            id="title"
-                            v-model="title"
+                            name="Name"
+                            label="Name"
+                            id="name"
+                            v-model="name"
                             :rules="[useRuleRequired, useRuleMinLength(3)]"
                         ></v-text-field>
                     </v-col>
 
                     <v-col cols="4">
                         <v-text-field
-                            name="code"
-                            label="Code"
-                            id="Code"
-                            v-model="code"
+                            name="staff-id"
+                            label="Staff Id"
+                            id="staff-id"
+                            v-model="staff_id"
                             :rules="[useRuleRequired, useRuleMinLength(3)]"
                         ></v-text-field>
                     </v-col>
                     <v-col cols="12">
                         <v-select
                             :items="departments"
-                            v-model="category"
-                            label="Venue Category"
+                            v-model="department"
+                            label="Department"
                             :rules="[useRuleRequired]"
-                            :loading="loadingCategories"
+                            :loading="loadingDepartments"
                             item-value="pk"
                         ></v-select>
                     </v-col>
 
-                    <v-col cols="12">
-                        <v-text-field
-                            name="capactiy"
-                            label="Venue Capacity"
-                            id="student_count"
-                            v-model="capacity"
-                            :rules="[useRuleRequired, useRuleNumber]"
-                        ></v-text-field>
+                    <v-col cols="6">
+                        <v-checkbox v-model="supervisor" label="Can Supervise"></v-checkbox>
+                    </v-col>
+                    <v-col cols="6">
+                        <v-checkbox v-model="invigilator" label="Can Invigilate"></v-checkbox>
                     </v-col>
                 </v-row>
             </v-card-text>
@@ -55,17 +52,19 @@
     </v-form>
 </template>
 <script setup lang="ts">
-import type { FetchError, Venue, VenueCategory } from "~/types"
+import type { FetchError, Staff, VenueCategory } from "~/types"
 const config = useRuntimeConfig()
 
-const title = ref("")
-const code = ref("")
-const capacity = ref()
-const category = ref()
+const name = ref("")
+const staff_id = ref("")
+const department = ref()
+const supervisor = ref(false)
+const invigilator = ref(true)
+
 const loading = ref(false)
 
-const { data: departments, pending: loadingCategories } = useFetch<VenueCategory[]>(
-    "/venues/categories/",
+const { data: departments, pending: loadingDepartments } = useFetch<VenueCategory[]>(
+    "/departments/",
     {
         baseURL: config.public.baseURL,
         default: () => [],
@@ -74,7 +73,7 @@ const { data: departments, pending: loadingCategories } = useFetch<VenueCategory
 
 const emits = defineEmits<{
     (event: "close"): void
-    (event: "add", venue: Venue): void
+    (event: "add", staff: Staff): void
 }>()
 
 const formValid = ref(false)
@@ -83,25 +82,26 @@ async function onSave() {
     if (!formValid.value) return
 
     const form = new FormData()
-    form.append("title", title.value)
-    form.append("code", code.value)
-    form.append("capacity", capacity.value)
-    form.append("category", category.value)
+    form.append("name", name.value)
+    form.append("staff_id", staff_id.value)
+    form.append("department", department.value)
+    form.append("can_invigilate", invigilator.value ? "yes" : "no")
+    form.append("can_supervise", supervisor.value ? "yes" : "no")
 
     try {
         loading.value = true
 
-        const venue = await $fetch<Venue>("/venues/", {
+        const staff = await $fetch<Staff>("/staffs/", {
             baseURL: config.public.baseURL,
             method: "post",
             body: form,
         })
 
-        emits("add", venue)
+        emits("add", staff)
         onClose()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-        if (error.response) {
+        if (error.data) {
             switch ((error as FetchError<string>).response!.status) {
                 case 400:
                     // Invalid form
@@ -143,10 +143,9 @@ async function onSave() {
     }
 }
 function onClose() {
-    title.value = ""
-    code.value = ""
-    category.value = null
-    capacity.value = []
+    name.value = ""
+    staff_id.value = ""
+    department.value = null
     loading.value = false
     emits("close")
 }

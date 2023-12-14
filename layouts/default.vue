@@ -77,7 +77,7 @@
     cursor: pointer;
 }
 
-@media screen and (min-width: 780px) {
+@media screen and (min-width: 1280px) {
     .notifications-container {
         max-width: calc(100vw / 3.4);
     }

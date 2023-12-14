@@ -14,6 +14,7 @@ export type Course = {
     level: number
     semester: number
     pk: number
+    student_count: number
 }
 
 export type VenueCategory = {
@@ -29,6 +30,15 @@ export type Venue = {
     category: VenueCategory
 }
 
+export type Staff = {
+    name: string
+    staff_id: string
+    can_supervise: boolean
+    can_invigilate: string
+    pk: number
+    department: Department
+}
+
 export type Timetable = {
     pk: number
     title: string
@@ -39,11 +49,16 @@ export type Timetable = {
     venues: number[]
 }
 
-export type FetchError = {
+export type FetchError<T> = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: any
-    request: Request
-    response: Response
+    request?: Request
+    // options?: FetchOptions
+    response?: Response
+    data?: T
+    status?: number
+    statusText?: string
+    statusCode?: number
+    statusMessage?: string
 }
 
 export const SEMESTERS = [
@@ -111,4 +126,9 @@ export type _NavigationAction = {
     description?: ComputedRef | string
     loading?: ComputedRef<boolean> | boolean
     action: () => void
+}
+
+export type StoreResult<T> = {
+    value: ComputedRef<T | undefined>
+    pending: ComputedRef<boolean>
 }

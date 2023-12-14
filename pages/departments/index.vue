@@ -61,6 +61,12 @@
                         </v-chip>
                     </template>
 
+                    <template #item.title="{ item, value }">
+                        <nuxt-link :to="`departments/${item.pk}/`">
+                        <span class="text-black">{{ value }}</span>
+                        </nuxt-link>
+                    </template>
+
                     <template #loading>
                         <v-skeleton-loader type="table-row@6"></v-skeleton-loader>
                     </template>
@@ -130,7 +136,7 @@ onUnmounted(() => {
         console.log(error)
     }
 })
-
+const departmentStore = useDepartmentStore()
 const selectedDepartments = ref<Array<number>>([])
 const { data: departments, pending: pendingDepartments } = useFetch<Array<Department>>(
     "/departments/",
@@ -141,6 +147,9 @@ const { data: departments, pending: pendingDepartments } = useFetch<Array<Depart
         },
     }
 )
+watch(pendingDepartments, () => {
+    departmentStore.bulkInsert(departments.value)
+})
 
 function onSave(department: Department) {
     departments.value.push(department)
@@ -154,6 +163,7 @@ function onSave(department: Department) {
             closeCallback()
         },
     })
+    departmentStore.insert(department)
 }
 
 const deletion = ref({ model: false, pending: false })
