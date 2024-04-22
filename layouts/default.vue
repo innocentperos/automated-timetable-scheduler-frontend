@@ -1,7 +1,9 @@
 <template>
-    <v-app>
+    <v-app :theme="isDark ? 'dark' : 'light'">
         <size-navigation></size-navigation>
+
         <app-bar></app-bar>
+
         <v-main>
             <slot></slot>
 
@@ -16,12 +18,57 @@
                             :class="{ 'cursor-pointer': notification.action }"
                             border
                             :title="notification.title"
-                            :text="notification.text || ''"
                             :icon="notification.icon"
                             :color="notification.color"
                             @click="closeNotification(notification)"
                             elevation="2"
                         >
+                            <template #text>
+                                <div>
+                                    <span>
+                                        {{ notification.text || "" }}
+                                    </span>
+                                    <div>
+                                        <v-tooltip
+                                            v-for="(action, i) in notification.secondaryActions"
+                                            :key="i"
+                                            :text="action.tooltip"
+                                            bottom
+                                        >
+                                            <template #activator="{ props: _props }">
+                                                <v-btn
+                                                    v-bind="_props"
+                                                    class="ml-2 mt-2"
+                                                    slim
+                                                    variant="tonal"
+                                                    @click="
+                                                        action.action(() =>
+                                                            removeNotification(notification.id)
+                                                        )
+                                                    "
+                                                    :text="
+                                                        action.type == 'text' ||
+                                                        action.type == 'both'
+                                                            ? action.text
+                                                            : undefined
+                                                    "
+                                                    :icon="
+                                                        action.type == 'icon'
+                                                            ? action.icon
+                                                            : undefined
+                                                    "
+                                                    :prepend-icon="
+                                                        action.type == 'both'
+                                                            ? action.icon
+                                                            : undefined
+                                                    "
+                                                >
+                                                </v-btn>
+                                            </template>
+                                        </v-tooltip>
+                                    </div>
+                                </div>
+                            </template>
                             <template #append>
                                 <v-btn
                                     @click="removeNotification(notification.id)"
@@ -91,6 +138,8 @@ function closeNotification(notification: _Notification & { id: string | symbol }
         notification.action(() => removeNotification(notification.id))
     }
 }
+
+const { isDark } = useTheme()
 
 const {
     heads: notifications,

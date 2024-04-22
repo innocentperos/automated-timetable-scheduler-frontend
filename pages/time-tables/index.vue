@@ -19,6 +19,20 @@
                                     v-model="newTimetableDialog.title"
                                     :rules="[required, minLen(3)]"
                                 ></v-text-field>
+                                <v-select
+                                    :items="SEMESTERS"
+                                    v-model="newTimetableDialog.semester"
+                                    label="Semester"
+                                    item-title="title"
+                                    item-value="value"
+                                    :rules="[required]"
+                                ></v-select>
+                                <v-text-field
+                                    name="session"
+                                    label="Session"
+                                    v-model="newTimetableDialog.session"
+                                    :rules="[required, minLen(4)]"
+                                ></v-text-field>
                             </v-card-text>
                             <v-card-actions>
                                 <v-btn
@@ -39,6 +53,21 @@
         </v-row>
         <v-row>
             <v-col> Timetables </v-col>
+            <v-spacer></v-spacer>
+            <ui-is-authenticated user-type="admin">
+                <v-col cols="auto" class="d-flex">
+                    <v-btn-toggle mandatory multiple color="primary">
+                        <v-btn
+                            @click="selectMode = !selectMode"
+                            :color="selectMode ? 'primary' : ''"
+                            >Select
+                        </v-btn>
+                        <v-btn v-if="selectMode" @click="selectMode = !selectMode">All </v-btn>
+                    </v-btn-toggle>
+                </v-col>
+            </ui-is-authenticated>
+        </v-row>
+        <v-row>
             <v-col
                 v-if="pendingTimetables"
                 cols="12"
@@ -49,55 +78,82 @@
         </v-row>
         <v-row v-if="!pendingTimetables">
             <v-col cols="4" lg="3" v-for="timetable in timetables" :key="timetable.pk">
-                <NuxtLink :to="`/time-tables/${timetable.pk}/`">
-                    <v-card class="aspect-square" color="indigo">
-                        <v-card-text class="w-100 h-100 d-flex flex-column">
-                            <div class="d-flex justify-space-between align-center w-100">
-                                <span class="text-subtitle-1 text-uppercase">{{
-                                    timetable.title
-                                }}</span>
-                                <v-avatar :color="timetable.is_current ? 'white' : 'transparent'">
-                                    <v-icon :color="timetable.is_current ? 'indigo' : 'transparent'"
-                                        >mdi-check</v-icon
-                                    >
-                                </v-avatar>
-                            </div>
-                            <div class="d-flex flex-column mt-auto">
-                                <span class="text-subtitle-2"
-                                    >{{ timetable.courses.length }} Courses</span
+                <v-card
+                    class="aspect-square relative"
+                    :color="
+                        !selectMode
+                            ? timetable.is_current
+                                ? 'indigo'
+                                : ''
+                            : isSelected(timetable.pk)
+                              ? 'error'
+                              : ''
+                    "
+                    @click="viewTable($event, timetable)"
+                >
+                    <v-card-text class="w-100 h-100 d-flex flex-column">
+                        <v-slide-y-transition>
+                            <span v-if="isSelected(timetable.pk) && selectMode">selected</span>
+                        </v-slide-y-transition>
+                        <div class="d-flex justify-space-between align-center w-100">
+                            <span class="text-subtitle-1 text-uppercase">{{
+                                timetable.title
+                            }}</span>
+                            <v-spacer></v-spacer>
+                            <v-avatar
+                                v-if="!selectMode"
+                                :color="timetable.is_current ? 'white' : 'transparent'"
+                            >
+                                <v-icon :color="timetable.is_current ? 'indigo' : 'transparent'"
+                                    >mdi-check</v-icon
                                 >
+                            </v-avatar>
+                        </div>
+                        <div class="d-flex flex-column mt-auto">
+                            <span class="text-subtitle-2"
+                                >{{ timetable.courses.length }} Courses</span
+                            >
 
-                                <span>{{ new Date(timetable.created_on) }}</span>
-                            </div>
+                            <span>{{ new Date(timetable.created_on) }}</span>
+                        </div>
+                        <lazy-ui-is-authenticated user-type="admin">
                             <v-btn
                                 v-if="!timetable.is_current"
-                                color="white"
                                 variant="tonal"
                                 class="mt-2"
                                 prepend-icon="mdi-check"
+                                @click.prevent
                                 >mark current</v-btn
                             >
-                        </v-card-text>
-                    </v-card>
-                </NuxtLink>
-            </v-col>
-            <v-col cols="4" lg="3">
-                <v-card
-                    class="aspect-square cursor-pointer"
-                    color="teal"
-                    @click="newTimetableDialog.model = true"
-                >
-                    <v-card-text class="h-100 w-100 d-flex flex-column align-center justify-center">
-                        <span>New Table</span>
-                        <v-icon size="42">mdi-plus</v-icon>
+                        </lazy-ui-is-authenticated>
                     </v-card-text>
                 </v-card>
             </v-col>
+            <lazy-ui-is-authenticated user-type="admin">
+                <v-col cols="4" lg="3">
+                    <v-card
+                        class="aspect-square cursor-pointer"
+                        color="teal"
+                        @click="newTimetableDialog.model = true"
+                    >
+                        <v-card-text
+                            class="h-100 w-100 d-flex flex-column align-center justify-center"
+                        >
+                            <span>New Table</span>
+                            <v-icon size="42">mdi-plus</v-icon>
+                        </v-card-text>
+                    </v-card>
+                </v-col>
+            </lazy-ui-is-authenticated>
         </v-row>
     </v-container>
 </template>
 <script setup lang="ts">
 import type { FetchError, Timetable } from "~/types"
+import { SEMESTERS } from "~/types"
+
+setPageLayout("default")
+
 const configs = useRuntimeConfig()
 const { addAction, removeActions } = useNavigation()
 const { add: addNotification } = useNotification()
@@ -108,6 +164,7 @@ onMounted(() => {
         addAction({
             title: "New Table",
             icon: "mdi-plus",
+            hidden: computed(() => !useUser().isAdmin.value),
             action() {
                 newTimetableDialog.value.model = true
             },
@@ -121,6 +178,7 @@ const timetableStore = useTimetableStore()
 const { data: timetables, pending: pendingTimetables } = useFetch<Timetable[]>("/timetables/", {
     default: () => [],
     baseURL: configs.public.baseURL,
+    headers: useFetchHeader([]),
 })
 watch(timetables, () => {
     timetableStore.bulkInsert(timetables.value)
@@ -129,6 +187,8 @@ watch(timetables, () => {
 const newTimetableDialog = ref({
     model: false,
     title: "",
+    semester: 1,
+    session: "2023/2024",
     pending: false,
     form: false,
 })
@@ -143,7 +203,12 @@ async function onNew() {
         const table = await $fetch<Timetable>("/timetables/", {
             method: "post",
             baseURL: configs.public.baseURL,
-            body: { title: newTimetableDialog.value.title },
+            headers: useFetchHeader([]),
+            body: {
+                title: newTimetableDialog.value.title,
+                session: newTimetableDialog.value.session,
+                semester: newTimetableDialog.value.semester,
+            },
             retryDelay: 300,
             retry: 5,
         })
@@ -187,5 +252,37 @@ async function onNew() {
     } finally {
         newTimetableDialog.value.pending = false
     }
+}
+function viewTable(event: Event, table: Timetable) {
+    if (selectMode.value) {
+        event.preventDefault()
+        event.stopPropagation()
+        select(table.pk)
+    } else {
+        if (useUser().isAdmin.value) {
+            useRouter().push("/time-tables/" + table.pk)
+        } else {
+            useRouter().push({
+                name: "time-tables-timetable_pk-view",
+                params: {
+                    timetable_pk: table.pk,
+                },
+            })
+        }
+    }
+}
+const selectedTimetables = ref<number[]>([])
+const selectMode = ref(false)
+
+function select(id: number) {
+    if (isSelected(id)) {
+        selectedTimetables.value = selectedTimetables.value.filter((_id) => _id != id)
+    } else {
+        selectedTimetables.value.push(id)
+    }
+}
+
+function isSelected(id: number) {
+    return selectedTimetables.value.includes(id)
 }
 </script>

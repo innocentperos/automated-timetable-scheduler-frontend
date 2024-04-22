@@ -3,6 +3,29 @@ import type { ComputedRef } from "vue"
 
 const navigation = ref(false)
 const searchQuery = ref("")
+const darkTheme = ref(true)
+const _title = ref("Timetable Management")
+
+export const useTheme = () => {
+    return {
+        isDark: computed(() => darkTheme.value),
+        toggleTheme: () => (darkTheme.value = !darkTheme.value),
+    }
+}
+
+export const useNavigationDrawer = () => {
+    return {
+        hide: () => {
+            navigation.value = false
+        },
+        show: () => {
+            navigation.value = true
+        },
+        setQuery: (value: string) => (searchQuery.value = value),
+        query: computed(() => searchQuery.value),
+        model: computed(() => navigation.value),
+    }
+}
 
 const __actions = ref<
     Array<
@@ -60,6 +83,9 @@ export const useNavigation = () => {
         removeActions: (keys: symbol[]) => {
             __actions.value = __actions.value.filter((item) => !keys.includes(item.key))
         },
+        clear: () => {
+            __actions.value = []
+        },
         actions: computed(() => _visibleActions.value),
         headActions: computed(() => {
             if (_visibleActions.value.length < 3) {
@@ -73,5 +99,53 @@ export const useNavigation = () => {
             }
             return _visibleActions.value.slice(2)
         }),
+        title: computed(() => _title.value),
+        setTitle: (title: string) => {
+            _title.value = title
+        },
+    }
+}
+
+const __secondary_actions = ref<
+    Array<
+        _NavigationAction & {
+            key: symbol
+            disabled?: ComputedRef
+            hidden?: ComputedRef
+            loading?: ComputedRef
+            group?: string
+        }
+    >
+>([])
+
+export const useSecondaryNavigation = () => {
+    function addAction(action: _NavigationAction & { group?: string }) {
+        const symbol = Symbol()
+        __secondary_actions.value.push({ ...action, key: symbol })
+        return symbol
+    }
+
+    function removeAction(key: symbol) {
+        __secondary_actions.value = __secondary_actions.value.filter((action) => action.key != key)
+    }
+
+    return {
+        addAction,
+        removeAction,
+        addActions: (actions: Array<_NavigationAction>, group?: string) => {
+            return actions.map((e) => addAction({ ...e, group: group }))
+        },
+        removeActions: (keys: Array<symbol>) => {
+            keys.forEach(removeAction)
+        },
+        removeActionsOfGroup: (group: string) => {
+            __secondary_actions.value = __secondary_actions.value.filter(
+                (action) => action.group != group
+            )
+        },
+        clear: () => {
+            __secondary_actions.value = []
+        },
+        actions: computed(() => __secondary_actions.value),
     }
 }

@@ -1,9 +1,22 @@
 <template>
     <v-form @submit.prevent v-model="formValid" :disabled="loading">
         <v-card>
-            <v-card-title primary-title> Add new staff </v-card-title>
+            <v-card-title primary-title class="px-6 pt-6"> Add new staff </v-card-title>
             <v-card-text>
                 <v-row>
+                    <v-col cols="12">
+                        <v-checkbox v-model="isUser" hide-details label="Is a user"></v-checkbox>
+                    </v-col>
+
+                    <v-col v-if="isUser" cols="12">
+                        <v-text-field
+                            v-model="email"
+                            label="Email Address"
+                            :rules="[useRuleRequired]"
+                            :loading="checkingEmail"
+                            item-value="pk"
+                        ></v-text-field>
+                    </v-col>
                     <v-col cols="8">
                         <v-text-field
                             name="Name"
@@ -43,9 +56,26 @@
                 </v-row>
             </v-card-text>
             <v-card-actions>
-                <v-btn class="ml-4" type="submit" color="primary" @click="onSave" :loading="loading"
-                    >Save Venue</v-btn
-                >
+                <v-slide-x-transition group>
+                    <v-btn
+                        class="ml-4"
+                        type="submit"
+                        color="primary"
+                        @click="confirmEmail"
+                        :loading="checkingEmail"
+                        v-if="isUser"
+                        >Validated Email</v-btn
+                    >
+                    <v-btn
+                        class="ml-4"
+                        type="submit"
+                        color="primary"
+                        @click="onSave"
+                        :loading="loading"
+                        :disabled="!allowSaving"
+                        >Save Staff</v-btn
+                    >
+                </v-slide-x-transition>
                 <v-btn color="error" @click="onClose">Cancel</v-btn>
             </v-card-actions>
         </v-card>
@@ -87,6 +117,7 @@ async function onSave() {
     form.append("department", department.value)
     form.append("can_invigilate", invigilator.value ? "yes" : "no")
     form.append("can_supervise", supervisor.value ? "yes" : "no")
+    form.append("email", email.value)
 
     try {
         loading.value = true
@@ -94,15 +125,19 @@ async function onSave() {
         const staff = await $fetch<Staff>("/staffs/", {
             baseURL: config.public.baseURL,
             method: "post",
+            headers: useFetchHeader([]),
+
             body: form,
         })
 
         emits("add", staff)
         onClose()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-        if (error.data) {
-            switch ((error as FetchError<string>).response!.status) {
+    } catch (_error: any) {
+        const error = _error as FetchError<string>
+        useLogger().error("Add Staff Dialog", "Unable to add staff", error as Error)
+        if (error.statusCode) {
+            switch (error.statusCode) {
                 case 400:
                     // Invalid form
                     useNotification().add({
@@ -148,5 +183,27 @@ function onClose() {
     department.value = null
     loading.value = false
     emits("close")
+}
+
+const isUser = ref(false)
+const email = ref("")
+const checkingEmail = ref(false)
+const validatedEmail = ref(false)
+
+const allowSaving = computed(() => {
+    if (isUser.value == false) return true
+
+    if (validatedEmail.value) return true
+
+    return false
+})
+async function confirmEmail() {
+    try {
+        checkingEmail.value = true
+    } catch (error) {
+        useLogger().error("ConfirmEmail", "COuld not confrim staff email", error as Error)
+    } finally {
+        checkingEmail.value = false
+    }
 }
 </script>

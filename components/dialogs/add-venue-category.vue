@@ -40,13 +40,21 @@ async function onSave() {
         const response = await $fetch<VenueCategory>("/venues/categories/", {
             method: "post",
             baseURL: configs.public.baseURL,
+            headers: useFetchHeader([]),
             body: { title: title.value },
         })
         emits("add", response)
         close()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (_error: any) {
-        if (!_error.data) {
+        const error = _error as FetchError<string>
+        useLogger().error(
+            "Add Venue Category Dialog",
+            "Unable to add venue category",
+            error as Error
+        )
+
+        if (!error.statusCode) {
             addNotification({
                 text: "Oops, please make sure you have a stable internet connection and try again",
                 icon: "mdi-wifi-alert",
@@ -57,9 +65,8 @@ async function onSave() {
             })
             return
         }
-        const error = _error as FetchError
 
-        switch (error.response.status) {
+        switch (error.statusCode) {
             case 400:
                 addNotification({
                     text: "Invalid form was provided",

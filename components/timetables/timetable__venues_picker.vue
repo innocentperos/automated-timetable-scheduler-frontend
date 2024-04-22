@@ -170,6 +170,7 @@ const { data: categories, pending: loadingCategoryies } = useFetch<VenueCategory
     "/venues/categories/",
     {
         baseURL: configs.public.baseURL,
+        headers: useFetchHeader([]),
         default() {
             return []
         },
@@ -201,12 +202,22 @@ function toggleSelectedCategories(value: boolean) {
 
 const { data: _venues } = useFetch<Venue[]>("/venues/", {
     baseURL: configs.public.baseURL,
+    headers: useFetchHeader([]),
     default() {
         return []
     },
 })
 const venues = computed(() => {
-    return _venues.value.filter((venue) => selectedCategories.value.includes(venue.category.pk))
+    if (selectedCategories.value.length == 0) {
+        return _venues.value
+    }
+
+    return _venues.value.filter((venue) => {
+        if (venue.category) {
+            return selectedCategories.value.includes(venue.category.pk)
+        }
+        return false
+    })
 })
 const selectedVenues = computed(() => {
     return _venues.value.filter((venue) => timetable.value?.venues.includes(venue.pk))
@@ -224,6 +235,7 @@ async function removeVenue(venue: Venue) {
         await $fetch(`/timetables/${timetable.value!.pk}/venues/`, {
             method: "DELETE",
             baseURL: configs.public.baseURL,
+            headers: useFetchHeader([]),
             body: [venue.pk],
         })
         if (timetable.value) {
@@ -264,6 +276,7 @@ async function addVenue(venue: Venue) {
         await $fetch(`/timetables/${timetable.value!.pk}/venues/`, {
             method: "POST",
             baseURL: configs.public.baseURL,
+            headers: useFetchHeader([]),
             body: [venue.pk],
         })
         timetable.value!.venues.push(venue.pk)
@@ -299,7 +312,7 @@ async function addVenue(venue: Venue) {
 
 const addVenueModel = ref(false)
 function onVenueAdded(venue: Venue) {
-    venues.value.push(venue)
+    _venues.value.push(venue)
 
     useNotification().add({
         text: `${venue.title} added to venues`,

@@ -28,12 +28,14 @@
                 <v-window v-model="currentTab">
                     <v-window-item :value="1">
                         <LazyDepartmentsStaffListTable
-                            :department-pk="department.pk"
+                            :department-pk="departmentPk"
+                            :active="currentTab == 1"
                         ></LazyDepartmentsStaffListTable>
                     </v-window-item>
                     <v-window-item :value="2">
                         <LazyDepartmentsCourseListTable
-                            :department-pk="department.pk"
+                            :department-pk="departmentPk"
+                            :active="currentTab == 2"
                         ></LazyDepartmentsCourseListTable>
                     </v-window-item>
                 </v-window>
@@ -46,9 +48,13 @@
         </v-row>
         <v-row>
             <v-dialog v-model="additions.course" max-width="600px" location="top center" persistent>
-                <LazyDialogsAddCourse @add="courseAdded" @close="additions.course = false" />
+                <LazyDialogsAddCourse
+                    :department-id="route.params.department_pk as any"
+                    @add="courseAdded"
+                    @close="additions.course = false"
+                ></LazyDialogsAddCourse>
             </v-dialog>
-            <v-dialog v-model="additions.staff" max-width="500px" location="top center" persistent>
+            <v-dialog v-model="additions.staff" max-width="600px" location="top center" persistent>
                 <LazyDialogsAddStaff @add="staffAdded" @close="additions.staff = false" />
             </v-dialog>
         </v-row>
@@ -60,6 +66,7 @@ import type { Course, Department, Staff } from "~/types"
 const configs = useRuntimeConfig()
 const { add: addNotification } = useNotification()
 const route = useRoute()
+const departmentPk = parseInt(route.params.department_pk as string)
 
 const departmentStore = useDepartmentStore()
 const currentTab = ref(2)
@@ -67,66 +74,15 @@ const currentTab = ref(2)
 const {
     data: department,
     pending: loadingDepartment,
-    error,
     refresh,
-} = useFetch<Department & { staffs: Staff[]; courses: Course[] }>(
-    `/departments/${route.params.department_pk}/`,
-    {
-        retry: 5,
-        retryDelay: 300,
-        baseURL: configs.public.baseURL,
-        server: false,
-        lazy: true,
-    }
-)
-async function loadStaffs(department: Department) {
-    try {
-        const staffs = await $fetch<Staff[]>(`/departments/${department.pk}/staffs/`, {
-            baseURL: configs.public.baseURL,
-            retry: 5,
-            retryDelay: 300,
-        })
-        departmentStore.insertStaff(department.pk, staffs)
-    } catch (error) {
-        useNotification().add({
-            text: "Something went wrong while fetching staffs list",
-            icon: "mdi-close",
-        })
-    }
-}
-
-async function loadCourses(department: Department) {
-    try {
-        const courses = await $fetch<Course[]>(`/departments/${department.pk}/courses/`, {
-            baseURL: configs.public.baseURL,
-            retry: 5,
-            retryDelay: 300,
-        })
-        departmentStore.insertCourse(department.pk, courses)
-    } catch (error) {
-        useNotification().add({
-            text: "Something went wrong while fetching courses list",
-            icon: "mdi-close",
-        })
-    }
-}
-
-watch(department, async () => {
-    console.log({
-        title: "Got department",
-        table: department.value,
-    })
-
-    if (department.value) {
-        departmentStore.insert(department.value)
-
-        await loadStaffs(department.value)
-        await loadCourses(department.value)
-    }
-})
-
-watch(error, () => {
-    if (error.value) {
+} = useFetch<Department & { staffs: Staff[]; courses: Course[] }>(`/departments/${departmentPk}/`, {
+    retry: 5,
+    retryDelay: 300,
+    baseURL: configs.public.baseURL,
+    headers: useFetchHeader([]),
+    server: false,
+    lazy: true,
+    onRequestError() {
         addNotification({
             text: "Could not get the department",
             action(closeCallback) {
@@ -134,7 +90,7 @@ watch(error, () => {
                 closeCallback()
             },
         })
-    }
+    },
 })
 
 const additions = ref({

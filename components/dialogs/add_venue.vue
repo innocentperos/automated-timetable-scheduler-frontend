@@ -64,10 +64,13 @@ const capacity = ref()
 const category = ref()
 const loading = ref(false)
 
+const venueStore = useVenueStore()
+
 const { data: departments, pending: loadingCategories } = useFetch<VenueCategory[]>(
     "/venues/categories/",
     {
         baseURL: config.public.baseURL,
+        headers: useFetchHeader([]),
         default: () => [],
     }
 )
@@ -94,15 +97,20 @@ async function onSave() {
         const venue = await $fetch<Venue>("/venues/", {
             baseURL: config.public.baseURL,
             method: "post",
+            headers: useFetchHeader([]),
             body: form,
         })
 
         emits("add", venue)
+        venueStore.insert(venue)
+
         onClose()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-        if (error.response) {
-            switch ((error as FetchError<string>).response!.status) {
+    } catch (_error: any) {
+        const error = _error as FetchError<string>
+        useLogger().error("Add Venue Dialog", "Unable to add Venue", error as Error)
+        if (error.statusCode) {
+            switch (error.statusCode) {
                 case 400:
                     // Invalid form
                     useNotification().add({

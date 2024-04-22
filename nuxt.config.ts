@@ -3,6 +3,7 @@ import vuetify, { transformAssetUrls } from "vite-plugin-vuetify"
 // eslint-disable-next-line no-undef
 export default defineNuxtConfig({
     devtools: { enabled: true },
+    ssr: false,
     runtimeConfig: {
         public: {
             baseURL: "http://localhost:8000/api",
@@ -30,4 +31,9 @@ export default defineNuxtConfig({
         },
     },
     css: ["~/assets/css/main.css"],
+    // nitro: {
+    //     imports: {
+    //         dirs: ["./typing"],
+    //     }
+    // },
 })

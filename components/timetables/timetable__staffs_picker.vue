@@ -53,6 +53,7 @@
             </v-col>
             <v-col cols="12" lg="9">
                 <div class="d-block mx-4 mt-4 mb-2">Selected Staff</div>
+                <v-progress-circular v-show="loadingStaffs"></v-progress-circular>
                 <v-slide-x-transition group>
                     <div
                         class="d-inline-block ma-1"
@@ -161,6 +162,7 @@ const timetable = timetableStore.retrieve(props.tablePk)
 
 const { data: departments, pending: loadingDepartments } = useFetch<Department[]>("/departments/", {
     baseURL: configs.public.baseURL,
+    headers: useFetchHeader([]),
     default() {
         return []
     },
@@ -186,9 +188,9 @@ function selectDepartment(department: Department, value: boolean) {
     }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { data: _staffs, pending: loadingStaffs } = useFetch<Staff[]>("/staffs/", {
     baseURL: configs.public.baseURL,
+    headers: useFetchHeader([]),
     default() {
         return []
     },
@@ -213,6 +215,7 @@ async function removeStaff(staff: Staff) {
         pendingStatus.value[staff.pk] = true
         await $fetch(`/timetables/${timetable.value.pk}/staffs/`, {
             baseURL: configs.public.baseURL,
+            headers: useFetchHeader([]),
             method: "delete",
             body: [staff.pk],
         })
@@ -249,6 +252,7 @@ async function addStaff(staff: Staff) {
         pendingStatus.value[staff.pk] = true
         await $fetch(`/timetables/${timetable.value.pk}/staffs/`, {
             baseURL: configs.public.baseURL,
+            headers: useFetchHeader([]),
             method: "post",
             body: [staff.pk],
         })

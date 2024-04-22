@@ -37,7 +37,7 @@
                             :rules="[useRuleRequired, useRuleMinLength(3)]"
                         ></v-text-field>
                     </v-col>
-                    <v-col cols="12">
+                    <v-col cols="12" v-show="departmentId == undefined">
                         <v-select
                             :items="departments"
                             v-model="courseDepartment"
@@ -45,6 +45,7 @@
                             :rules="[useRuleRequired]"
                             :loading="loadingDepartments"
                             item-value="pk"
+                            :disabled="departmentId != undefined"
                         ></v-select>
                     </v-col>
                     <v-col cols="12">
@@ -88,7 +89,7 @@
                 <v-btn class="ml-4" type="submit" color="primary" @click="onSave" :loading="loading"
                     >Save Course</v-btn
                 >
-                <v-btn color="primary" @click="onClose">Cancel</v-btn>
+                <v-btn color="error" @click="onClose">Cancel</v-btn>
             </v-card-actions>
         </v-card>
     </v-form>
@@ -115,7 +116,16 @@ const last_error = ref({
 
 const { data: departments, pending: loadingDepartments } = useFetch<Department[]>("/departments/", {
     baseURL: config.public.baseURL,
+    headers: useFetchHeader([]),
     default: () => [],
+})
+
+const props = defineProps<{ departmentId?: number }>()
+
+onMounted(() => {
+    if (props.departmentId) {
+        courseDepartment.value = props.departmentId
+    }
 })
 
 const emits = defineEmits<{
@@ -151,6 +161,8 @@ async function onSave() {
 
         const course = await $fetch<Course>("/courses/", {
             baseURL: config.public.baseURL,
+            headers: useFetchHeader([]),
+
             method: "post",
             body: form,
         })
@@ -158,9 +170,11 @@ async function onSave() {
         emits("add", course)
         onClose()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-        if (error.data) {
-            switch ((error as FetchError).response.status) {
+    } catch (_error) {
+        const error = _error as FetchError<string>
+        useLogger().error("Add Course Dialog", "Unable to add a new course", error as Error)
+        if (error.statusCode) {
+            switch (error.statusCode) {
                 case 400:
                     // Invalid form
                     setLastError("Invalid form provided", "mdi-information-variant-circle")

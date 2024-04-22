@@ -1,5 +1,8 @@
 import type { Course, Department, FetchError, Staff } from "~/types"
 import { useStaffStore } from "./staff-store"
+import { useLogger } from "~/composables/use-logger"
+
+const logger = useLogger()
 
 export const useDepartmentStore = defineStore("department-store", () => {
     const _departments = ref<{ [pk: number]: Department }>({})
@@ -48,7 +51,7 @@ export const useDepartmentStore = defineStore("department-store", () => {
             _coursesMapping.value[departmentPk] = []
         }
 
-        return computed(() => _staffsMapping.value[departmentPk])
+        return computed(() => _coursesMapping.value[departmentPk])
     }
 
     function insertCourse(departmentPk: number, courses: Course[]) {
@@ -78,7 +81,7 @@ export const useDepartmentStore = defineStore("department-store", () => {
 
     function insert(department: Department) {
         _departments.value[department.pk] = department
-        console.log("added " + department.title)
+        logger.debug("Department Store", "Added a department", department)
     }
 
     function retrieve(pk: number) {
@@ -102,12 +105,6 @@ export const useDepartmentStore = defineStore("department-store", () => {
         })
     }
 
-    function $all() {
-        $fetch("/departments/", {
-            baseURL: useRuntimeConfig().public.baseURL,
-        })
-    }
-
     async function getOrFetch(pk: number) {
         const error = ref<FetchError<Department> | null>(null)
         if (pk in _departments.value) {
@@ -117,6 +114,7 @@ export const useDepartmentStore = defineStore("department-store", () => {
         try {
             const response = await $fetch<Department>(`/departments/${pk}/`, {
                 baseURL: useRuntimeConfig().public.baseURL,
+                headers: useFetchHeader([]),
             })
             _departments.value[response.pk] = response
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,6 +130,7 @@ export const useDepartmentStore = defineStore("department-store", () => {
                 baseURL: useRuntimeConfig().public.baseURL,
                 retry: 5,
                 retryDelay: 300,
+                headers: useFetchHeader([]),
             })
             bulkInsert(response)
         } catch (error) {
@@ -161,10 +160,28 @@ export const useDepartmentStore = defineStore("department-store", () => {
         bulkRemove,
         getOrFetch,
         refreshDepartments,
-        all: () => computed(() => Object.values(_departments.value)),
+        all: () => {
+            if (Object.keys(_departments.value).length < 1) {
+                $fetch<Department[]>("/departments/", {
+                    baseURL: useRuntimeConfig().public.baseURL,
+                    headers: useFetchHeader([]),
+                })
+                    .then(bulkInsert)
+                    .catch((error) => {
+                        logger.log({
+                            level: "error",
+                            tag: "Department Store; all()",
+                            message: "Error getting department list",
+                            stackTrace: Error.captureStackTrace(error),
+                            error: error,
+                        })
+                    })
+            }
+
+            return computed(() => Object.values(_departments.value))
+        },
         count: () => computed(() => Object.keys(_departments).length),
 
-        $all,
         staffs,
         insertStaff,
         removeStaff,

@@ -8,7 +8,8 @@ export const useRuleMinLength = (length: number) => (value: string) => {
     return value.length >= length || `Must be more than ${length} characters.`
 }
 
-export const useRuleNumber = (value: string) => {
+export const useRuleNumber = (_value: string | number) => {
+    const value = _value.toString()
     const p = parseInt(value)
     if (isNaN(p) || p.toString() != value.trim()) return "Most be a valid number"
 

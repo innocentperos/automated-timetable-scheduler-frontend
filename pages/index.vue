@@ -1,22 +1,45 @@
 <template>
     <v-container>
         <v-row>
-            <v-col v-for="link in LINKS" :key="link.link">
-                <NuxtLink :to="link.link">
-                    <v-card class="aspect-square">
-                        <v-card-text>
-                            {{ link.title }}
-                        </v-card-text>
-                    </v-card>
-                </NuxtLink>
-            </v-col>
+            <lazy-ui-is-authenticated>
+                <v-col :cols="4">
+                    <NuxtLink to="/time-tables">
+                        <v-card class="aspect-square">
+                            <v-card-text> Timetables </v-card-text>
+                        </v-card>
+                    </NuxtLink>
+                </v-col>
+            </lazy-ui-is-authenticated>
+            <lazy-ui-is-authenticated user-type="admin">
+                <v-col :cols="4">
+                    <NuxtLink to="/departments">
+                        <v-card class="aspect-square">
+                            <v-card-text> Departments </v-card-text>
+                        </v-card>
+                    </NuxtLink>
+                </v-col>
+            </lazy-ui-is-authenticated>
+
+            <lazy-ui-is-authenticated>
+                <v-col :cols="4">
+                    <NuxtLink to="/courses">
+                        <v-card class="aspect-square">
+                            <v-card-text> Courses </v-card-text>
+                        </v-card>
+                    </NuxtLink>
+                </v-col>
+            </lazy-ui-is-authenticated>
+
+            <lazy-ui-is-authenticated>
+                <v-col :cols="4">
+                    <NuxtLink to="/venues">
+                        <v-card class="aspect-square">
+                            <v-card-text> Venues </v-card-text>
+                        </v-card>
+                    </NuxtLink>
+                </v-col>
+            </lazy-ui-is-authenticated>
         </v-row>
     </v-container>
 </template>
-<script setup lang="ts">
-const LINKS = [
-    { title: "Departments", link: "/departments/" },
-    { title: "Courses", link: "/courses/" },
-    { title: "Venues", link: "/venues/" },
-]
-</script>
+<script setup lang="ts"></script>

@@ -46,24 +46,22 @@
                 >
                     <template #top>
                         <v-row justify="center">
-                            <v-col><span class="text-h5 text-uppercase">Departments</span></v-col>
+                            <v-col class="pa-12">
+                                <span class="text-h5 text-uppercase">Departments</span>
+                            </v-col>
                         </v-row>
                     </template>
 
-                    <template #item.departments="{ value }">
-                        <v-chip
-                            v-for="department in value"
-                            :key="department.pk"
-                            class="ml-1"
-                            color="teal"
-                        >
-                            {{ department.code }}
-                        </v-chip>
-                    </template>
-
                     <template #item.title="{ item, value }">
-                        <nuxt-link :to="`departments/${item.pk}/`">
-                        <span class="text-black">{{ value }}</span>
+                        <nuxt-link :to="`/departments/${item.pk}/`">
+                            <div class="d-flex items-center">
+                                <span class="text-primary">{{ value }}</span
+                                ><v-icon
+                                    icon="mdi-launch"
+                                    color="primary"
+                                    class="d-inline-block ml-2"
+                                ></v-icon>
+                            </div>
                         </nuxt-link>
                     </template>
 
@@ -100,6 +98,8 @@ const { addAction, removeActions } = useNavigation()
 const addition = ref({ model: false })
 const headingActions: symbol[] = []
 
+const authService = useUser()
+
 onMounted(() => {
     headingActions.push(
         addAction({
@@ -107,6 +107,7 @@ onMounted(() => {
             description: "Add an new department",
             icon: "mdi-plus",
             color: "primary",
+            hidden: computed(() => !authService.isAdmin.value),
             action() {
                 addition.value.model = true
             },
@@ -142,6 +143,7 @@ const { data: departments, pending: pendingDepartments } = useFetch<Array<Depart
     "/departments/",
     {
         baseURL: configs.public.baseURL,
+        headers: useFetchHeader([]),
         default() {
             return []
         },
@@ -176,6 +178,7 @@ async function onDelete() {
         await $fetch("/courses/multiple_delete/", {
             baseURL: configs.public.baseURL,
             method: "DELETE",
+            headers: useFetchHeader([]),
             body: selectedDepartments.value,
         })
 

@@ -84,6 +84,7 @@ async function saveDepartment() {
     try {
         pending.value = true
         const response = await $fetch<Department>("/departments/", {
+            headers: useFetchHeader([]),
             baseURL: configs.public.baseURL,
             method: "post",
             body: {
@@ -98,8 +99,9 @@ async function saveDepartment() {
     } catch (error: any) {
         emits("error", error)
         if (error.data) {
-            const _error = error as FetchError
-            switch (_error.response.status) {
+            const _error = error as FetchError<string>
+            useLogger().error("Add Department Dialog", "Unable to add department", _error as Error)
+            switch (_error.statusCode) {
                 case 400:
                     setLastError(
                         "The details you provided was invalid",

@@ -3,29 +3,39 @@
         <v-col>
             <v-data-table
                 :headers="HEADERS"
-                :items="departmentCourse"
+                :items="courses"
                 show-select
                 v-model="selectedCourses"
                 item-value="pk"
+                :loading="pending"
             >
                 <template #top>
-                    <v-row justify="center">
-                        <v-col
-                            ><span class="text-h6 text-uppercase">Department Courses</span></v-col
-                        >
-                    </v-row>
+                    <div class="d-flex pa-8">
+                        <span class="text-h6 text-uppercase">Department Courses</span>
+                        <v-spacer></v-spacer>
+                        <v-btn icon="mdi-refresh" color="primary" @click="refresh"></v-btn>
+                    </div>
                 </template>
-
-                <!-- <template #item.departments="{ value }">
-                        <v-chip v-for="staff in value" :key="staff.pk" class="ml-1" color="teal">
-                            {{ staff.staff_id }}
-                        </v-chip>
-                    </template> -->
 
                 <template #loading>
                     <v-skeleton-loader type="table-row@6"></v-skeleton-loader>
                 </template>
             </v-data-table>
+
+            <v-dialog v-model="deleteDialog" max-width="500px" transition="dialog-transition">
+                <v-card>
+                    <v-card-title primary-title class="pa-4"> Are you sure? </v-card-title>
+                    <v-card-text>
+                        You are about to delete the {{ selectedCourses.length }} selected courses
+                    </v-card-text>
+                    <v-card-actions class="pa-4">
+                        <v-btn @click="onDelete" color="error" variant="elevated">
+                            Yes, delete
+                        </v-btn>
+                        <v-btn class="ml-2" @click="deleteDialog = false">No, Cancel</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
         </v-col>
     </v-row>
 </template>
@@ -56,19 +66,75 @@ const HEADERS = [
     },
 ]
 
-const props = defineProps<{ departmentPk: number }>()
-
-const departmentStore = useDepartmentStore()
-const department = departmentStore.retrieve(props.departmentPk)
-
-const selectedCourses = ref<Array<number>>([])
-const courseStore = useCourseStore()
-
-const courses = courseStore.all()
-const departmentCoursesPk = departmentStore.courses(department.value.pk)
-const departmentCourse = computed(() => {
-    return courses.value.filter((course) =>
-        departmentCoursesPk.value.includes(course.department.pk)
-    )
+const props = defineProps<{ departmentPk: number; active: boolean }>()
+const {
+    data: courses,
+    pending,
+    refresh,
+} = useFetch<Course[]>(`/departments/${props.departmentPk}/courses/`, {
+    baseURL: useRuntimeConfig().public.baseURL,
+    headers: useFetchHeader([]),
+    retry: 5,
+    retryDelay: 300,
+    default() {
+        return []
+    },
 })
+const selectedCourses = ref<Array<number>>([])
+
+let actions: symbol[] = []
+onMounted(() => {
+    actions = useNavigation().addActions([
+        {
+            title: "Delete",
+            icon: "mdi-delete",
+            color: "error",
+            action() {
+                deleteDialog.value = true
+            },
+            hidden: computed(() => {
+                if (!useUser().isAdmin.value) return true
+                return !props.active || selectedCourses.value.length < 1
+            }),
+            loading: computed(() => deleting.value),
+        },
+    ])
+})
+onUnmounted(() => {
+    actions.forEach(useNotification().remove)
+})
+
+const deleteDialog = ref(false)
+const deleting = ref(false)
+async function onDelete() {
+    if (selectedCourses.value.length < 1) return
+
+    try {
+        deleting.value = true
+        await $fetch("/courses/multiple_delete/", {
+            baseURL: useRuntimeConfig().public.baseURL,
+            method: "DELETE",
+            body: selectedCourses.value,
+            headers: useFetchHeader([]),
+        })
+
+        courses.value = courses.value.filter((course) => {
+            return !selectedCourses.value.includes(course.pk)
+        })
+
+        useNotification().add({
+            text: `Successfully deleted ${selectedCourses.value.length} courses`,
+            icon: "mdi-delete",
+            color: "teal",
+            action: (event) => event(),
+        })
+
+        selectedCourses.value = []
+    } catch (error) {
+        console.log({ error })
+    } finally {
+        deleting.value = false
+        deleteDialog.value = false
+    }
+}
 </script>

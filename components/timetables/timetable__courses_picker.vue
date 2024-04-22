@@ -3,6 +3,43 @@
     <v-container fluid>
         <v-row no-gutters>
             <v-col cols="12" lg="3">
+                <v-card elevation="0" color="primary" class="mb-4">
+                    <v-card-text class="pa-0">
+                        <v-list bg-color="primary" density="compact">
+                            <v-list-item>
+                                <v-list-item-title class="text-button"> Levels </v-list-item-title>
+                                <template #append>
+                                    <v-checkbox-btn
+                                        :model-value="selectedLevels.length == LEVELS.length"
+                                        @update:model-value="toggleAllLevel($event)"
+                                    ></v-checkbox-btn>
+                                </template>
+                            </v-list-item>
+                            <v-divider></v-divider>
+                            <div v-if="loadingDepartments" class="d-flex flex-column">
+                                <v-skeleton-loader
+                                    color="primary"
+                                    type="list-item"
+                                    elevation="0"
+                                    v-for="i in 3"
+                                    :key="i"
+                                ></v-skeleton-loader>
+                            </div>
+                            <v-list-item v-for="level in LEVELS" :key="level.value">
+                                <v-list-item-title>
+                                    {{ level.title }}
+                                </v-list-item-title>
+                                <template #append>
+                                    <v-checkbox-btn
+                                        :model-value="selectedLevels.includes(level.value)"
+                                        @update:model-value="selectLevel(level, $event)"
+                                    ></v-checkbox-btn>
+                                </template>
+                            </v-list-item>
+                        </v-list>
+                    </v-card-text>
+                </v-card>
+
                 <v-card elevation="0" color="primary">
                     <v-card-text class="pa-0">
                         <v-list bg-color="primary" density="compact">
@@ -56,6 +93,7 @@
                         >
                     </v-alert>
                 </div>
+
                 <v-slide-x-transition group>
                     <div
                         class="d-inline-block ma-1"
@@ -100,6 +138,7 @@
                 <div class="d-block ma-2 mt-5">Course Poll</div>
 
                 <v-slide-x-transition group>
+                    <v-btn class="my-4 mx-4">Add All Courses</v-btn>
                     <div class="d-inline-block ma-1" v-for="course in courses" :key="course.pk">
                         <v-tooltip location="top center">
                             <template #default>
@@ -149,12 +188,6 @@
                                     @click="addCourseModel = true"
                                     >new course
                                     <template #append>
-                                        <!-- <v-progress-circular
-                                            v-if="pendingStatus[course.pk]"
-                                            size="x-small"
-                                            class="ml-2"
-                                            indeterminate
-                                        ></v-progress-circular> -->
                                         <v-icon class="ml-2">mdi-plus</v-icon>
                                     </template>
                                 </v-chip>
@@ -175,7 +208,7 @@
 </template>
 <script setup lang="ts">
 import type { Course, Department, FetchError } from "~/types"
-
+import { LEVELS } from "~/types"
 const props = defineProps<{ tablePk: number }>()
 const configs = useRuntimeConfig()
 
@@ -186,6 +219,7 @@ const { data: departments, pending: loadingDepartments } = useFetch<Array<Course
     "/departments/",
     {
         baseURL: configs.public.baseURL,
+        headers: useFetchHeader([]),
         default: () => [],
     }
 )
@@ -195,6 +229,7 @@ watch(departments, () => {
         selectedDepartments.value = departments.value.map((department) => department.pk)
     }
 })
+const selectedLevels = ref<number[]>([])
 const selectedDepartments = ref<number[]>([])
 function selectDepartment(department: Department, value: boolean) {
     if (value) {
@@ -211,15 +246,34 @@ function toggleAllDepartments(value: boolean) {
     }
 }
 
-const { data: _courses } = useFetch<Array<Course>>("/courses/", {
+function selectLevel(level: { value: number }, value: boolean) {
+    if (value) {
+        selectedLevels.value.push(level.value)
+    } else {
+        selectedLevels.value = selectedLevels.value.filter((pk) => pk != level.value)
+    }
+}
+
+function toggleAllLevel(value: boolean) {
+    if (value == false) {
+        selectedLevels.value = []
+    } else {
+        selectedLevels.value = LEVELS.map((level) => level.value)
+    }
+}
+
+const { data: _courses } = useFetch<Array<Course>>("/courses/?semester=", {
     baseURL: configs.public.baseURL,
+    headers: useFetchHeader([]),
     default: () => [],
 })
 const courses = computed(() => {
     return _courses.value.filter(
         (course) =>
             selectedDepartments.value.includes(course.department.pk) &&
-            !timetable.value?.courses.includes(course.pk)
+            !timetable.value?.courses.includes(course.pk) &&
+            (selectedLevels.value.includes(course.level) || selectedLevels.value.length == 0) &&
+            course.semester == timetable.value?.semester
     )
 })
 const _selectedCourses = computed(() => {
@@ -248,6 +302,7 @@ async function removeCourse(course: Course) {
             method: "DELETE",
             baseURL: configs.public.baseURL,
             body: [course.pk],
+            headers: useFetchHeader([]),
         })
         if (timetable.value) {
             timetable.value.courses = timetable.value?.courses.filter((c) => c != course.pk)
@@ -284,6 +339,7 @@ async function addCourse(course: Course) {
             method: "POST",
             baseURL: configs.public.baseURL,
             body: [course.pk],
+            headers: useFetchHeader([]),
         })
         timetable.value?.courses.push(course.pk)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

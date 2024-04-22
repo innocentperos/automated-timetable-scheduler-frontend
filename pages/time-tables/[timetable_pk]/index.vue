@@ -9,13 +9,13 @@
                 <v-tabs v-model="currentTab" color="primary" align-tabs="center">
                     <v-tab :value="0">
                         <v-slide-x-transition>
-                            <v-icon v-show="currentTab == 0">mdi-comment-processing-outline</v-icon>
+                            <v-icon>mdi-cog</v-icon>
                         </v-slide-x-transition>
                         <span class="d-inline-block mx-2">Configurations</span>
                     </v-tab>
                     <v-tab :value="1">
                         <v-slide-x-transition>
-                            <v-icon v-show="currentTab == 1">mdi-account-group</v-icon>
+                            <v-icon>mdi-account-group</v-icon>
                         </v-slide-x-transition>
                         <span class="d-inline-block mx-2"
                             >Staffs
@@ -24,7 +24,7 @@
                     </v-tab>
                     <v-tab :value="2">
                         <v-slide-x-transition>
-                            <v-icon v-show="currentTab == 2">mdi-book-multiple</v-icon>
+                            <v-icon>mdi-book-multiple</v-icon>
                         </v-slide-x-transition>
                         <span class="d-inline-block mx-2"
                             >Courses
@@ -33,7 +33,7 @@
                     </v-tab>
                     <v-tab :value="3">
                         <v-slide-x-transition>
-                            <v-icon v-show="currentTab == 3">mdi-home-group</v-icon>
+                            <v-icon>mdi-home-group</v-icon>
                         </v-slide-x-transition>
                         <span class="d-inline-block mx-2"
                             >Venues
@@ -47,6 +47,11 @@
         <v-row v-if="timetable && !pendingTable">
             <v-col cols="12">
                 <v-window v-model="currentTab">
+                    <v-window-item :value="0">
+                        <LazyTimetablesTimetableConfiguration
+                            :timetable-pk="timetable.pk"
+                        ></LazyTimetablesTimetableConfiguration>
+                    </v-window-item>
                     <v-window-item :value="1">
                         <LazyTimetablesTimetableStaffsPicker :table-pk="timetable.pk">
                         </LazyTimetablesTimetableStaffsPicker>
@@ -73,41 +78,65 @@
 </template>
 <script setup lang="ts">
 import type { Timetable } from "~/types"
-definePageMeta({
-    validate: async (route) => {
-        // Check if the id is made up of digits
-        return /^\d+$/.test(route.params.timetable_pk as unknown as string)
-    },
+
+const route = useRoute()
+
+onBeforeMount(() => {
+    if (!useUser().isAdmin.value) {
+        useRouter().replace({
+            name: "time-tables-timetable_pk-view",
+            params: {
+                timetable_pk: route.params.timetable_pk,
+            },
+        })
+    }
 })
 
 const configs = useRuntimeConfig()
 const { add: addNotification } = useNotification()
-const route = useRoute()
 
 const timetableStore = useTimetableStore()
-const currentTab = ref(2)
+const currentTab = ref(0)
 
 const {
-    data: timetable,
+    data: _timetable,
     pending: pendingTable,
     error,
     refresh,
-} = useFetch<Timetable>(`/timetables/${route.params.timetable_pk}`, {
+} = useFetch<ComputedRef<Timetable>>(`/timetables/${route.params.timetable_pk}`, {
     retry: 5,
     retryDelay: 300,
     baseURL: configs.public.baseURL,
+    headers: useFetchHeader([]),
     server: false,
     lazy: true,
+    transform: function (response: unknown) {
+        const timetable: Timetable = {
+            ...(response as Timetable),
+            start_date: new Date((response as Timetable).start_date),
+            end_date: new Date((response as Timetable).end_date),
+            excluded_days: (response as Timetable).excluded_days.map((date) => new Date(date)),
+        }
+
+        timetableStore.insert(timetable)
+        return timetableStore.retrieve(timetable.pk) as unknown as ComputedRef<Timetable>
+    },
 })
-
+const timetable = computed(() => _timetable.value?.value)
+const mountedConplete = ref(false)
 watch(timetable, () => {
-    console.log({
-        title: "Got table",
-        table: timetable.value,
-    })
-
-    if (timetable.value) {
+    if (timetable.value && !mountedConplete.value) {
         timetableStore.insert(timetable.value)
+        mountedConplete.value = true
+        useNavigation().addAction({
+            title: "View Table",
+            icon: "mdi-calendar",
+            action() {
+                useRouter().push(`/time-tables/${timetable.value?.pk}/view`)
+            },
+        })
+
+        useNavigation().setTitle(timetable.value.title)
     }
 })
 
