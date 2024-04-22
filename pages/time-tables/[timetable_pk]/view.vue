@@ -83,19 +83,16 @@ const { data: timetable, pending: loadingTimetable } = useFetch<Timetable>(
     }
 )
 
-const { data: timetableDates, pending: loadingDates } = useFetch<string[]>(
-    `/timetables/${timetablePk}/dates`,
-    {
-        baseURL: useRuntimeConfig().public.baseURL,
-        headers: useFetchHeader([]),
-        transform(table) {
-            return table
-        },
-        default() {
-            return []
-        },
-    }
-)
+const { data: timetableDates } = useFetch<string[]>(`/timetables/${timetablePk}/dates`, {
+    baseURL: useRuntimeConfig().public.baseURL,
+    headers: useFetchHeader([]),
+    transform(table) {
+        return table
+    },
+    default() {
+        return []
+    },
+})
 
 provide(useTimetableView().currentTimetableInjectSymbol, timetable)
 
@@ -130,11 +127,49 @@ onMounted(() => {
             title: "Export",
             icon: "mdi-file-excel",
             color: "yellow",
-            action() {},
+            hidden: computed(() => {
+                return !timetable.value
+            }),
+            loading: computed(() => exporting.value),
+            action() {
+                exportFile("excel")
+            },
         },
     ])
     setQuery("")
 })
+
+const exporting = ref(false)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function exportFile(type: "pdf" | "excel") {
+    if (timetable.value)
+        try {
+            exporting.value = true
+            const response = await fetch(
+                `${useRuntimeConfig().public.baseURL}/timetables/${timetable.value.pk}/export/`,
+                {
+                    headers: useFetchHeader([]),
+                }
+            )
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            window.open(url, "Download")
+        } catch (error) {
+            console.error(error)
+            useNotification().add({
+                title: "Export failed",
+                text: "An error occured while exporting the timetable",
+                icon: "mdi-close-circle",
+                closable: true,
+                color: "error",
+                action(closeCallback) {
+                    closeCallback()
+                },
+            })
+        } finally {
+            exporting.value = false
+        }
+}
 
 const { mobile } = useDisplay()
 </script>

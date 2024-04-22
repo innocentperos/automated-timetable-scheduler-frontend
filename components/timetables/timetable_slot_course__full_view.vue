@@ -7,7 +7,6 @@
             :key="slotCourse.pk"
             :color="errorColor"
             class="border border-primary rounded-md pa-2 mb-auto course-card"
-            
         >
             <span class="d-flex flex-column pa-1 text-subtitle-1">
                 <div class="d-flex">
