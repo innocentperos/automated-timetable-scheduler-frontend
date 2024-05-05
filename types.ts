@@ -42,7 +42,7 @@ export type Staff = {
 export type Timetable = {
     pk: number
     title: string
-    is_current: string
+    is_current: boolean
     created_on: string
     courses: number[]
     staffs: number[]

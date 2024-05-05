@@ -69,14 +69,14 @@
                 </v-list-item>
             </NuxtLink>
 
-            <ui-is-authenticated user-type="admin">
+            <!-- <ui-is-authenticated user-type="admin">
                 <v-list-item link>
                     <template #prepend>
                         <v-icon icon="mdi-message"></v-icon>
                     </template>
                     <v-list-item-title> Complains</v-list-item-title>
                 </v-list-item>
-            </ui-is-authenticated>
+            </ui-is-authenticated> -->
         </v-list>
     </v-navigation-drawer>
 

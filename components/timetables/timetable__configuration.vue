@@ -1,5 +1,5 @@
 <template>
-    <v-navigation-drawer permanent fixed location="right" width="300">
+    <v-navigation-drawer v-if="active" permanent fixed location="right" width="300">
         <v-toolbar flat color="transparent">
             <v-list>
                 <v-list-item>
@@ -93,7 +93,7 @@
 <style scoped></style>
 <script setup lang="ts">
 import type { FetchError } from "~/types"
-const props = defineProps<{ timetablePk: number }>()
+const props = defineProps<{ timetablePk: number, active:boolean }>()
 const activeTab = ref(0)
 const generating = ref(false)
 const overlay = computed(() => {

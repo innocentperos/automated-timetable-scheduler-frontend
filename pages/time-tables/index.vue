@@ -117,14 +117,23 @@
                             <span>{{ new Date(timetable.created_on) }}</span>
                         </div>
                         <lazy-ui-is-authenticated user-type="admin">
-                            <v-btn
-                                v-if="!timetable.is_current"
-                                variant="tonal"
-                                class="mt-2"
-                                prepend-icon="mdi-check"
-                                @click.prevent
-                                >mark current</v-btn
-                            >
+                            <v-tooltip location="bottom">
+                                <template #activator="{ props: _props }">
+                                    <v-btn
+                                        v-bind="_props"
+                                        v-if="!timetable.is_current"
+                                        variant="tonal"
+                                        class="mt-2"
+                                        prepend-icon="mdi-check"
+                                        @click.stop="markCurrent(timetable)"
+                                        :disabled="settingCurrent > 0"
+                                        :loading="settingCurrent == timetable.pk"
+                                        >mark current</v-btn
+                                    >
+                                </template>
+                                This will be the timetable that students will be able to access and
+                                view
+                            </v-tooltip>
                         </lazy-ui-is-authenticated>
                     </v-card-text>
                 </v-card>
@@ -167,6 +176,19 @@ onMounted(() => {
             hidden: computed(() => !useUser().isAdmin.value),
             action() {
                 newTimetableDialog.value.model = true
+            },
+        })
+    )
+
+    actions.push(
+        addAction({
+            title: "Delete selected",
+            icon: "mdi-delete",
+            color: "error",
+            hidden: computed(() => selectedTimetables.value.length <= 0),
+            loading: computed(() => deletingTables.value),
+            action() {
+                deleteSelectedTables()
             },
         })
     )
@@ -284,5 +306,96 @@ function select(id: number) {
 
 function isSelected(id: number) {
     return selectedTimetables.value.includes(id)
+}
+
+const settingCurrent = ref<number>(0)
+async function markCurrent(table: Timetable) {
+    try {
+        settingCurrent.value = table.pk
+
+        await $fetch(`/timetables/${table.pk}/set_current/`, {
+            baseURL: useRuntimeConfig().public.baseURL,
+            headers: useFetchHeader([]),
+        })
+
+        timetables.value = timetables.value.map((timetable) => {
+            if (timetable.is_current) {
+                timetable.is_current = false
+            }
+
+            if (timetable.pk == settingCurrent.value) {
+                timetable.is_current = true
+            }
+            return timetable
+        })
+    } catch (error) {
+        const _error = error as FetchError<string>
+
+        if (!_error.statusCode) {
+            useNotification().postNetowrkIssue()
+        } else {
+            switch (_error.statusCode) {
+                case 404:
+                    useNotification().add({
+                        title: "Not found",
+                        text: "The timetable you tried to set as the default could not be found",
+                        color: "warning",
+                        closable: true,
+                        action(closeCallback) {
+                            closeCallback()
+                        },
+                    })
+                    break
+                default:
+                    useNotification().postServerIssue()
+            }
+        }
+    } finally {
+        settingCurrent.value = 0
+    }
+}
+
+const deletingTables = ref(false)
+async function deleteSelectedTables() {
+    try {
+        deletingTables.value = true
+        await $fetch("/timetables/multiple/", {
+            baseURL: useRuntimeConfig().public.baseURL,
+            method: "DELETE",
+            body: selectedTimetables.value,
+            headers: useFetchHeader([]),
+        })
+
+        timetables.value = timetables.value.filter(
+            (table) => !selectedTimetables.value.includes(table.pk)
+        )
+
+        useNotification().add({
+            title: "Deleted",
+            text: `${selectedTimetables.value.length} timetable ${
+                selectedTimetables.value.length <= 1 ? "was" : "were"
+            } deleted successfully`,
+            color: "success",
+            closable: true,
+            action(closeCallback) {
+                closeCallback()
+            },
+        })
+
+        selectedTimetables.value = []
+    } catch (error) {
+        const _error = error as FetchError<string>
+
+        if (!_error.statusCode) {
+            useNotification().postNetowrkIssue()
+        } else {
+            switch (_error.statusCode) {
+                default:
+                    useNotification().postServerIssue()
+            }
+        }
+    } finally {
+        deletingTables.value = false
+    }
 }
 </script>

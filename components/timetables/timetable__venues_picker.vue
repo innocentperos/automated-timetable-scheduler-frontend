@@ -57,6 +57,18 @@
                     Selected Venues {{ selectedVenues.length }}
                 </div>
                 <v-slide-x-transition group>
+                    <v-chip class="ma-1" @click="removeAllVenues" color="error" variant="elevated">
+                        <div class="d-flex justify-center align-center">
+                            <v-progress-circular
+                                indeterminate
+                                size="16"
+                                width="2"
+                                class="mr-2"
+                                v-show="removinggMultipe"
+                            ></v-progress-circular>
+                            <span>Remove All Venue</span>
+                        </div>
+                    </v-chip>
                     <div
                         class="d-inline-block ma-1"
                         v-for="venue in selectedVenues"
@@ -96,6 +108,18 @@
 
                 <div class="d-block ma-4 mb-1">Venue Pool {{ availableVenuePool.length }}</div>
                 <v-slide-x-transition group>
+                    <v-chip class="ma-1" @click="addAllVenues" color="error" variant="elevated">
+                        <div class="d-flex justify-center align-center">
+                            <v-progress-circular
+                                indeterminate
+                                size="16"
+                                width="2"
+                                class="mr-2"
+                                v-show="addingMultipe"
+                            ></v-progress-circular>
+                            <span>Add All Venues</span>
+                        </div>
+                    </v-chip>
                     <div
                         class="d-inline-block ma-1"
                         v-for="venue in availableVenuePool"
@@ -320,5 +344,93 @@ function onVenueAdded(venue: Venue) {
         color: "teal",
         closable: true,
     })
+}
+
+const removinggMultipe = ref(false)
+async function removeAllVenues() {
+    const ids = selectedVenues.value.map((venue) => venue.pk)
+
+    try {
+        removinggMultipe.value = true
+        await $fetch(`/timetables/${timetable.value?.pk}/venues/`, {
+            method: "DELETE",
+            baseURL: configs.public.baseURL,
+            body: ids,
+            headers: useFetchHeader([]),
+        })
+
+        if (timetable.value) {
+            timetable.value.venues = timetable.value.venues.filter((id) => !ids.includes(id))
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        const _error = error as FetchError<string>
+
+        if (!_error.statusCode) {
+            useNotification().add({
+                text: "Oops, make sure you have a stable internet connection and try again.",
+                icon: "mdi-wifi-remove",
+                closable: true,
+            })
+        } else {
+            switch (_error.statusCode) {
+                case 404:
+                    useRouter().push("/time-tables")
+                    break
+                default:
+                    useNotification().add({
+                        text: "Oops, something went wrong on the server and try again.",
+                        icon: "mdi-server-remove",
+                        closable: true,
+                    })
+            }
+        }
+    } finally {
+        removinggMultipe.value = false
+    }
+}
+
+const addingMultipe = ref(false)
+async function addAllVenues() {
+    const ids = availableVenuePool.value.map((venue) => venue.pk)
+
+    try {
+        addingMultipe.value = true
+        await $fetch(`/timetables/${timetable.value?.pk}/venues/`, {
+            method: "POST",
+            baseURL: configs.public.baseURL,
+            body: ids,
+            headers: useFetchHeader([]),
+        })
+
+        if (timetable.value) {
+            timetable.value.venues = [...timetable.value.venues, ...ids]
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        const _error = error as FetchError<string>
+
+        if (!_error.statusCode) {
+            useNotification().add({
+                text: "Oops, make sure you have a stable internet connection and try again.",
+                icon: "mdi-wifi-remove",
+                closable: true,
+            })
+        } else {
+            switch (_error.statusCode) {
+                case 404:
+                    useRouter().push("/time-tables")
+                    break
+                default:
+                    useNotification().add({
+                        text: "Oops, something went wrong on the server and try again.",
+                        icon: "mdi-server-remove",
+                        closable: true,
+                    })
+            }
+        }
+    } finally {
+        addingMultipe.value = false
+    }
 }
 </script>

@@ -50,6 +50,7 @@
                     <v-window-item :value="0">
                         <LazyTimetablesTimetableConfiguration
                             :timetable-pk="timetable.pk"
+                            :active="currentTab == 0"
                         ></LazyTimetablesTimetableConfiguration>
                     </v-window-item>
                     <v-window-item :value="1">

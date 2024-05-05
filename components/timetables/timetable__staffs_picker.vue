@@ -55,6 +55,19 @@
                 <div class="d-block mx-4 mt-4 mb-2">Selected Staff</div>
                 <v-progress-circular v-show="loadingStaffs"></v-progress-circular>
                 <v-slide-x-transition group>
+                    <v-chip class="ma-1" @click="removeAllStaffs" color="error" variant="elevated">
+                        <div class="d-flex justify-center align-center">
+                            <v-progress-circular
+                                indeterminate
+                                size="16"
+                                width="2"
+                                class="mr-2"
+                                v-show="removinggMultipe"
+                            ></v-progress-circular>
+                            <span>Remove All Staffs</span>
+                        </div>
+                    </v-chip>
+
                     <div
                         class="d-inline-block ma-1"
                         v-for="staff in selectedStaffs"
@@ -91,6 +104,18 @@
 
                 <div class="d-block ma-4 mb-1">Staff Pool</div>
                 <v-slide-x-transition group>
+                    <v-chip class="ma-1" @click="addAllStaffs" color="error" variant="elevated">
+                        <div class="d-flex justify-center align-center">
+                            <v-progress-circular
+                                indeterminate
+                                size="16"
+                                width="2"
+                                class="mr-2"
+                                v-show="addingMultipe"
+                            ></v-progress-circular>
+                            <span>Add All Staffs</span>
+                        </div>
+                    </v-chip>
                     <div
                         class="d-inline-block ma-1"
                         v-for="staff in availableStaffsPool"
@@ -293,5 +318,96 @@ function onStaffAdded(staff: Staff) {
         icon: "mdi-check-all",
         color: "teal",
     })
+}
+
+
+
+const removinggMultipe = ref(false)
+async function removeAllStaffs() {
+    const ids = selectedStaffs.value.map((staff) => staff.pk)
+
+    try {
+        removinggMultipe.value = true
+        await $fetch(`/timetables/${timetable.value?.pk}/staffs/`, {
+            method: "DELETE",
+            baseURL: configs.public.baseURL,
+            body: ids,
+            headers: useFetchHeader([]),
+        })
+
+        if (timetable.value) {
+            timetable.value.staffs = timetable.value.staffs.filter((id) => !ids.includes(id))
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        const _error = error as FetchError<string>
+
+        if (!_error.statusCode) {
+            useNotification().add({
+                text: "Oops, make sure you have a stable internet connection and try again.",
+                icon: "mdi-wifi-remove",
+                closable: true,
+            })
+        } else {
+            switch (_error.statusCode) {
+                case 404:
+                    useRouter().push("/time-tables")
+                    break
+                default:
+                    useNotification().add({
+                        text: "Oops, something went wrong on the server and try again.",
+                        icon: "mdi-server-remove",
+                        closable: true,
+                    })
+            }
+        }
+    } finally {
+        removinggMultipe.value = false
+    }
+}
+
+
+const addingMultipe = ref(false)
+async function addAllStaffs() {
+    const ids = staffs.value.map((staff) => staff.pk)
+
+    try {
+        addingMultipe.value = true
+        await $fetch(`/timetables/${timetable.value?.pk}/staffs/`, {
+            method: "POST",
+            baseURL: configs.public.baseURL,
+            body: ids,
+            headers: useFetchHeader([]),
+        })
+
+        if (timetable.value) {
+            timetable.value.staffs = [...timetable.value.staffs, ...ids]
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        const _error = error as FetchError<string>
+
+        if (!_error.statusCode) {
+            useNotification().add({
+                text: "Oops, make sure you have a stable internet connection and try again.",
+                icon: "mdi-wifi-remove",
+                closable: true,
+            })
+        } else {
+            switch (_error.statusCode) {
+                case 404:
+                    useRouter().push("/time-tables")
+                    break
+                default:
+                    useNotification().add({
+                        text: "Oops, something went wrong on the server and try again.",
+                        icon: "mdi-server-remove",
+                        closable: true,
+                    })
+            }
+        }
+    } finally {
+        addingMultipe.value = false
+    }
 }
 </script>
