@@ -1,8 +1,10 @@
-# Nuxt 3 Minimal Starter
+# An Examination Timetable Scheduler
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+The frontend implementation of an online automated examination timetable scheduler, using nuxt 3.
 
 ## Setup
+
+Make sure you have the backend server running on localhost port 8000, check out the backend server code written in python at my repository [Backend Server Repository](https://github.com/innocentperos/automated-timetable-scheduler-backend)
 
 Make sure to install the dependencies:
 
